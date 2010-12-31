@@ -32,6 +32,14 @@ define('UGLIFYJS_FUNCTION', 'UJS');
 class UglifyJS {
 	
 	/**
+	 * The tokenizer/parser
+	 *
+	 * @access  protected
+	 * @type    UglifyJS_parser
+	 */
+	protected $parser = null;
+	
+	/**
 	 * Path constants
 	 */
 	const BASEPATH = UGLIFYJS_BASEPATH;
@@ -62,6 +70,17 @@ class UglifyJS {
 	);
 	
 	/**
+	 * The Constructor
+	 *
+	 * @access  public
+	 * @return  void
+	 */
+	public function __construct() {
+		require_once(UGLIFYJS_LIBPATH.'parse-js.php');
+		$this->parser = new UglifyJS_parser();
+	}
+	
+	/**
 	 * Sets configuration options
 	 *
 	 * @access  public
@@ -74,14 +93,56 @@ class UglifyJS {
 		return $this;
 	}
 	 
+	/**
+	 * Sets configuration options in batch
+	 *
+	 * @access  public
+	 * @param   array     the config options
+	 * @return  self
+	 */
+	public function set_options($options) {
+		foreach($options as $option => $value) {
+			$this->set_option($option, $value);
+		}
+		return $this;
+	}
 	
+	/**
+	 * Parses a string
+	 *
+	 * @access  public
+	 * @param   string    the input code
+	 * @param   mixed     output location
+	 * @return  self
+	 */
+	public function parse_string($input, &$output) {
+		$output = $this->parse_code_block($input);
+		return $this;
+	}	
 	
+	/**
+	 * Parses a file
+	 * 
+	 * @access  public
+	 * @param   string    the input file
+	 * @param   string    output location
+	 * @return  self
+	 */
+	public function parse_file($input, &$output) {
+		$this->parse_string(file_get_contents($input), $output);
+		return $this;
+	}
 	
-	
-	
-	
-	
-	
+	/**
+	 * Parse a block of code and return
+	 *
+	 * @access  protected
+	 * @param   string    the code to parse
+	 * @return  string
+	 */
+	protected function parse_code_block($code) {
+		return $code;
+	}
 	
 	
 	
@@ -105,7 +166,7 @@ if (UGLIFYJS_FUNCTION && ! function_exists(UGLIFYJS_FUNCTION)) {
 			'if (! $inst) {',
 				'$inst = new UglifyJS();',
 			'}',
-			'return $inst';
+			'return $inst;',
 		'}'
 	)));
 }
