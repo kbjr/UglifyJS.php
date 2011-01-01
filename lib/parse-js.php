@@ -11,11 +11,17 @@
 | @version    0.1.1-a
 | @copyright  Copyright 2010 James Brumond
 | @license    Dual licensed under MIT and GPL
-| @requires   PHP >= 5.2.0
+| @requires   PHP >= 5.3.0
 |
 |----------------------------------------------------------
 |
-| This file contains the tokenizer/parser.
+| This file contains the tokenizer/parser. It is a port of
+| the parse-js.js file included in UglifyJS [1] which is
+| itself a port of the Common Lisp library parse-js [2]
+| written by Marijn Haverbeke.
+|
+| [1] https://github.com/mishoo/UglifyJS
+| [2] http://marijn.haverbeke.nl/parse-js/
 |
 */
 
@@ -387,6 +393,12 @@ class UglifyJS_tokenizer {
 		'regex_allowed'  => false
 	);
 	
+	/**
+	 * The skip_comments parameter of the constructor
+	 *
+	 * @access  protected
+	 * @type    bool
+	 */
 	protected $skip_comments = null;
 	
 	/**
@@ -526,7 +538,7 @@ class UglifyJS_tokenizer {
 		while ($ch && $pred($ch, $i++)) {
 			$ret .= $this->next();
 			$ch = $this->peek();
-		}
+		}http://marijn.haverbeke.nl/parse-js/
 		return $ret;
 	}
 	
