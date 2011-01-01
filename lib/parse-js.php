@@ -482,7 +482,7 @@ class UglifyJS_tokenizer {
 	 * @param   string    the token value
 	 * @return  object
 	 */
-	protected function token($type, $value) {
+	protected function token($type, $value = null) {
 		$this->state['regex_allowed'] = (
 			($type == 'operator' && ! in_array($value, $this->unary_postfix)) ||
 			($type == 'keyword' && in_array($value, $this->keywords_before_expression)) ||
@@ -845,10 +845,25 @@ class UglifyJS_tokenizer {
 	 * the source code.
 	 *
 	 * @access  public
+	 * @param   bool      force parsing in regex mode
 	 * @return  object
 	 */
-	public function next_token() {
-		
+	public function next_token($force_regexp = false) {
+		if ($force_regexp) {
+			return $this->read_regexp();
+		}
+		$this->skip_whitespace();
+		$this->start_token();
+		$ch = $this->peek();
+		if (! $ch) return $this->token('eof');
+		if ($this->is_digit($ch)) return $this->read_num();
+		if ($ch == '"' || $ch == "'") return $this->read_string();
+		if (in_array($ch, $this->punc_chars)) return $this->token('punc', $this->next());
+		if ($ch == '.') return $this->handle_dot();
+		if ($ch == '/') return $this->handle_slash();
+		if (in_array($ch, $this->operator_chars)) return $this->read_operator();
+		if (is_identifier_char($ch)) return $this->read_word();
+		parse_error("Unexpected character '{$ch}'");
 	}
 	
 	/**
