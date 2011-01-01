@@ -538,7 +538,7 @@ class UglifyJS_tokenizer {
 		while ($ch && $pred($ch, $i++)) {
 			$ret .= $this->next();
 			$ch = $this->peek();
-		}http://marijn.haverbeke.nl/parse-js/
+		}
 		return $ret;
 	}
 	
