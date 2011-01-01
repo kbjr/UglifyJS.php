@@ -11,9 +11,17 @@
 | @version    0.1.1-a
 | @copyright  Copyright 2010 James Brumond
 | @license    Dual licensed under MIT and GPL
-| @requires   PHP >= 5.2.0
+| @requires   PHP >= 5.3.0
 |
 */
+
+/**
+ * Check PHP's version for compatability
+ */
+define('UGLIFYJS_PHP_VERSION', '5.3.0');
+if (version_compare(PHP_VERSION, UGLIFYJS_PHP_VERSION, '<')) {
+	die('UglifyJS.php requires at least PHP '.UGLIFYJS_PHP_VERSION.', you are running '.PHP_VERSION);
+}
 
 /**
  * Path constants
@@ -27,17 +35,22 @@ define('UGLIFYJS_LIBPATH', UGLIFYJS_BASEPATH.'lib/');
 define('UGLIFYJS_FUNCTION', 'UJS');
 
 /**
+ * The currently running version of UglifyJS
+ */
+define('UGLIFYJS_VERSION', '0.1.1-a');
+
+/**
  * The core class
  */
 class UglifyJS {
 	
 	/**
-	 * The tokenizer/parser
+	 * The tokenizer
 	 *
 	 * @access  protected
-	 * @type    UglifyJS_parser
+	 * @type    UglifyJS_tokenizer
 	 */
-	protected $parser = null;
+	protected $tokenizer = null;
 	
 	/**
 	 * Path constants
@@ -77,7 +90,6 @@ class UglifyJS {
 	 */
 	public function __construct() {
 		require_once(UGLIFYJS_LIBPATH.'parse-js.php');
-		$this->parser = new UglifyJS_parser();
 	}
 	
 	/**
