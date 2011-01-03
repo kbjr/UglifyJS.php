@@ -892,9 +892,236 @@ class UglifyJS_tokenizer {
 	
 }
 
+/*
+|------------------------------------------------------------------------------
+|                        END OF TOKENIZER - BEGIN PARSER
+|------------------------------------------------------------------------------
+*/
 
+class UglifyJS_node_with_token {
+	public $name = null;
+	public $start = null;
+	public $end = null;
+	public function __construct($name, $start, $end) {
+		$this->name = $name;
+		$this->start = $start;
+		$this->end = $end;
+	}
+	public function __toString() {
+		return $this->name;
+	}
+}
 
-
+class UglifyJS_parser {
+	
+	/**
+	 * Unary prefixes
+	 *
+	 * @access  protected
+	 * @type    array
+	 */
+	protected $unary_prefix = array(
+		'typeof',
+		'void',
+		'delete',
+		'--',
+		'++',
+		'!',
+		'~',
+		'-',
+		'+'
+	);
+	
+	/**
+	 * Unary postfixes
+	 *
+	 * @access  protected
+	 * @type    array
+	 */
+	protected $unary_postfix = array( '--', '++' );
+	
+	/**
+	 * Assignment operators
+	 *
+	 * @access  protected
+	 * @type    array
+	 */
+	protected $assignment = array(
+		'='    => true,
+		'+='   => '+',
+		'-='   => '-',
+		'/='   => '/',
+		'*='   => '*',
+		'%='   => '%',
+		'>>='  => '>>',
+		'<<='  => '<<',
+		'>>>=' => '>>>',
+		'~='   => '~',
+		'%='   => '%',
+		'|='   => '|',
+		'^='   => '^',
+		'&='   => '&'
+	);
+	
+	/**
+	 * Order of operations
+	 *
+	 * @access  protected
+	 * @type    array
+	 */
+	protected $precedence = array(
+		'||'         => 1,
+		'&&'         => 2,
+		'|'          => 3,
+		'^'          => 4,
+		'&'          => 5,
+		'=='         => 6,
+		'==='        => 6,
+		'!='         => 6,
+		'!=='        => 6,
+		'<'          => 7,
+		'>'          => 7,
+		'<='         => 7,
+		'>='         => 7,
+		'in'         => 7,
+		'instanceof' => 7,
+		'>>'         => 8,
+		'<<'         => 8,
+		'>>>'        => 8,
+		'+'          => 9,
+		'-'          => 9,
+		'*'          => 10,
+		'/'          => 10,
+		'%'          => 10
+	);
+	
+	/**
+	 * Statements which can recieve labels
+	 *
+	 * @access  protected
+	 * @type    array
+	 */
+	protected $statements_with_labels = array(
+		'for', 'do', 'while', 'switch'
+	);
+	
+	/**
+	 * Atomic start tokens
+	 *
+	 * @access  protected
+	 * @type    array
+	 */
+	protected $atomic_start_token = array(
+		'atom', 'num', 'string', 'regexp', 'name'
+	);
+	
+/*
+|------------------------------------------------------------------------------
+|                         END OF TOKEN DEFINITIONS
+|------------------------------------------------------------------------------
+*/
+	
+	/**
+	 * Check for a specific type/value token
+	 *
+	 * @access  protected
+	 * @param   object    the token
+	 * @param   string    the token type
+	 * @param   string    the value
+	 * @return  bool
+	 */
+	protected function is_token($token, $type, $value = null) {
+		return ($token->type == $type && ($value === null || $token->value == $value));
+	}
+	
+	/**
+	 * Test the type/value of the current token
+	 *
+	 * @access  protected
+	 * @param   string    the type
+	 * @param   string    the value
+	 * @return  bool
+	 */
+	protected function is($type, $value = null) {
+		return $this->is_token($this->state['token'], $type, $value);
+	}
+	
+/*
+|------------------------------------------------------------------------------
+|                       END OF TOKEN TYPE FUNCTIONS
+|------------------------------------------------------------------------------
+*/
+	
+	/**
+	 * The current parser state
+	 *
+	 * @access  protected
+	 * @type    array
+	 */
+	protected $state = array(
+		'input'       => null,
+		'token'       => null,
+		'prev'        => null,
+		'peeked'      => null,
+		'in_function' => 0,
+		'in_loop'     => 0,
+		'labels'      => array()
+	);
+	
+	/**
+	 * Run in strict mode
+	 *
+	 * @access  protected
+	 * @type    bool
+	 */
+	protected $strict_mode = false;
+	
+	/**
+	 * Embed tokens
+	 *
+	 * @access  protected
+	 * @type    bool
+	 */
+	protected $embed_tokens = false;
+	
+	/**
+	 * Constructor
+	 *
+	 * @access  public
+	 * @param   string    the code
+	 * @param   bool      run in strict mode
+	 * @param   bool      embed tokens
+	 * @return  void
+	 */
+	public function __construct($text, $strict_mode = false, $embed_tokens = false) {
+		$this->state['input'] = new UglifyJS_tokenizer($text, true);
+		$this->strict_mode = ($strict_mode == true);
+		$this->embed_tokens = ($embed_tokens == true);
+	}
+	
+	/**
+	 * Peek at the current token
+	 *
+	 * @access  protected
+	 * @return  object
+	 */
+	protected function peek() {
+		if (! $this->state['peeked']) {
+			$this->state['peeked'] = $this->state['input']->next_token();
+		}
+		return $this->state['peeked'];
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+}
 
 
 
