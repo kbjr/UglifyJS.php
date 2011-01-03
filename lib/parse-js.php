@@ -1285,6 +1285,67 @@ class UglifyJS_parser {
 						return $this->simple_statement();
 					}
 				break;
+				case 'punc':
+					switch ($this->state['token']->value) {
+						case '{':
+							return array('block', $this->block_());
+						break;
+						case '[':
+						case '(':
+							return $this->simple_statement();
+						break;
+						case ';':
+							$this->next();
+							return array('block');
+						break;
+						default:
+							$this->unexpected();
+						break;
+					}
+				break;
+				case 'keyword':
+					$token_value = UJSUtil()->prog1($this->state['token']->value, $this->next);
+					switch ($token_value) {
+						case 'break':
+						case 'continue':
+							return $this->break_cont($token_value);
+						break;
+						case 'debugger':
+							$this->semicolon();
+							return array('debugger');
+						break;
+						case 'do':
+							return call_user_func(function($body) {
+								$this->expect_token('keyword', 'while');
+								return array('do', UJSUtil()->prog1($this->parenthesised, $this->semicolon), $body);
+							}, $this->in_loop($this->statement));
+						break;
+						case 'for':
+							return $this->for_();
+						break;
+						case 'function':
+							return $this->function_();
+						break;
+						case 'if':
+							return $this->if_();
+						break;
+						case 'return':
+							if (! $this->state['in_function']) {
+								$this->parse_error('"return" outside of function');
+							}
+							if ($this->is('punc', ';') || $this->can_insert_semicolon()) {
+								$this->next();
+								$value = null;
+							} else {
+								$value = UJSUtil()->prog1($this->expression, $this->semicolon);
+							}
+							return array('return', $value);
+						break;
+						case 'switch':
+							
+						break;
+					}
+				break;
 			}
 		}
 	}
