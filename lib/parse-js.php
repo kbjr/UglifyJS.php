@@ -1342,7 +1342,28 @@ class UglifyJS_parser {
 							return array('return', $value);
 						break;
 						case 'switch':
-							
+							return array('switch', $this->parenthesised(), $this->switch_block_());
+						break;
+						case 'throw':
+							return array('throw', UJSUtil()->prog1($this->expression, $this->semicolon));
+						break;
+						case 'try':
+							return $this->try_();
+						break;
+						case 'var':
+							return UJSUtil()->prog1($this->var_(), $this->semicolon());
+						break;
+						case 'const':
+							return UJSUtil()->prog1($this->const_(), $this->semicolon());
+						break;
+						case 'while':
+							return UJSUtil()->prog1('while', $this->parenthesised(), $this->in_loop($this->statement));
+						break;
+						case 'with':
+							return array('with', $this->parenthesised(), $this->statement());
+						break;
+						default:
+							$this->unexpected();
 						break;
 					}
 				break;
@@ -1350,9 +1371,52 @@ class UglifyJS_parser {
 		}
 	}
 	
+	/**
+	 * Handle a statement with a label
+	 *
+	 * @access  protected
+	 * @param   string    the label name
+	 * @return  array
+	 */
+	protected function labeled_statement($label) {
+		$this->state['labels'][] = $label;
+		$start = $this->state['token'];
+		$statement = $this->statement();
+		if ($this->strict_mode && ! in_array($statement[0], $this->statements_with_labels)) {
+			$this->unexpected($start);
+		}
+		return array('label', $label, $statement);
+	}
 	
+	/**
+	 * Handle a simple statement
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function simple_statement() {
+		return array('stat', UJSUtil()->prog1($this->statement, $this->semicolon));
+	}
 	
-	
+	/**
+	 * Handles break and continue
+	 *
+	 * @access  protected
+	 * @param   string    "break" or "continue"
+	 * @return  array
+	 */
+	protected function break_cont($type) {
+		$name = $this->is('name') ? $this->state['token']->value : null;
+		if ($name !== null) {
+			$this->next();
+			if (! in_array($name, $this->state['labels'])) {
+				$this->parse_error('Label "'.$name.'" without matching loop or statement');
+			}
+		} elseif (! $this->state['in_loop']) {
+			$this->parse_error($type.' not inside a loop or switch');
+		}
+		return array($type, $name);
+	}
 	
 	
 	
