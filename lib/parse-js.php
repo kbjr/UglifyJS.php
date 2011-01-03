@@ -26,6 +26,11 @@
 */
 
 /**
+ * Import Utilities
+ */
+require_once(UGLIFYJS_LIBPATH.'parse-utilities.php');
+
+/**
  * The parse error exception class
  */
 class UglifyJS_parse_error {
@@ -356,19 +361,6 @@ class UglifyJS_tokenizer {
 		return false;
 	}
 	
-	/**
-	 * Check for a specific type/value token
-	 *
-	 * @access  protected
-	 * @param   object    the token
-	 * @param   string    the token type
-	 * @param   string    the value
-	 * @return  bool
-	 */
-	protected function is_token($token, $type, $value = null) {
-		return ($token->type == $type && ($value === null || $token->value == $value));
-	}
-	
 /*
 |------------------------------------------------------------------------------
 |                       END OF TOKEN-TYPE FUNCTIONS
@@ -520,8 +512,7 @@ class UglifyJS_tokenizer {
 	 * @return  void
 	 */
 	protected function skip_whitespace() {
-		while (in_array($this->peek(), $this->whitespace_chars))
-			$this->next();
+		while (in_array($this->peek(), $this->whitespace_chars)) $this->next();
 	}
 	
 	/**
@@ -879,15 +870,17 @@ class UglifyJS_tokenizer {
 	}
 	
 	/**
-	 * Manually override the state variable
+	 * Manually override the state variable / get the current state
 	 *
 	 * @access  public
 	 * @param   array     the new state
 	 * @return  array
 	 */
-	public function context($state) {
-		$this->state = $state;
-		return $state;
+	public function context($state = null) {
+		if ($state) {
+			$this->state = $state;
+		}
+		return $this->state;
 	}
 	
 }
@@ -1022,19 +1015,6 @@ class UglifyJS_parser {
 */
 	
 	/**
-	 * Check for a specific type/value token
-	 *
-	 * @access  protected
-	 * @param   object    the token
-	 * @param   string    the token type
-	 * @param   string    the value
-	 * @return  bool
-	 */
-	protected function is_token($token, $type, $value = null) {
-		return ($token->type == $type && ($value === null || $token->value == $value));
-	}
-	
-	/**
 	 * Test the type/value of the current token
 	 *
 	 * @access  protected
@@ -1043,14 +1023,8 @@ class UglifyJS_parser {
 	 * @return  bool
 	 */
 	protected function is($type, $value = null) {
-		return $this->is_token($this->state['token'], $type, $value);
+		return UJSUtil()->is_token($this->state['token'], $type, $value);
 	}
-	
-/*
-|------------------------------------------------------------------------------
-|                       END OF TOKEN TYPE FUNCTIONS
-|------------------------------------------------------------------------------
-*/
 	
 	/**
 	 * The current parser state
@@ -1097,6 +1071,78 @@ class UglifyJS_parser {
 		$this->state['input'] = new UglifyJS_tokenizer($text, true);
 		$this->strict_mode = ($strict_mode == true);
 		$this->embed_tokens = ($embed_tokens == true);
+	}	
+	
+	/**
+	 * Throws a parse error
+	 *
+	 * @access  protected
+	 * @param   string    the error message
+	 * @param   number    line
+	 * @param   number    column
+	 * @param   number    position
+	 * @return  void
+	 */
+	protected function parse_error($msg, $line = null, $col = null, $pos = null) {
+		$ctx = $this->state['input']->context();
+		throw new UglifyJS_parse_error($msg,
+			(($line === null) ? $ctx['tokline'] : $line),
+			(($col === null)  ? $ctx['tokcol']  : $col),
+			(($pos === null)  ? $cxt['pos']     : $pos)
+		);
+	}
+	
+	/**
+	 * Throws a token error
+	 *
+	 * @access  protected
+	 * @param   string    the error message
+	 * @param   object    the token
+	 * @return  void
+	 */
+	protected function token_error($msg, $token) {
+		$this->parse_error($msg, $token->line, $token->col);
+	}
+	
+	/**
+	 * Throw an unexpected token error
+	 *
+	 * @access  protected
+	 * @param   object    the token
+	 * @return  void
+	 */
+	protected function unexpected($token = null) {
+		if ($token === null) {
+			$token = $this->state['token'];
+		}
+		$this->token_error('Unexpected token: '.$token->type.' ('.$token->value.')', $token);
+	}
+	
+	/**
+	 * Tell the parser to expect a specific token
+	 *
+	 * @access  protected
+	 * @param   string    the token type
+	 * @param   string    the token value
+	 * @return  object
+	 */
+	protected function expect_token($type, $value = null) {
+		if ($this->is($type, $value)) {
+			return $this->next();
+		}
+		$token = $this->state['token'];
+		$this->token_error('Unexpected token '.$token->type.', expected '.$type);
+	}
+	
+	/**
+	 * Expect a specific punctuation character
+	 *
+	 * @access  protected
+	 * @param   string    the character
+	 * @return  object
+	 */
+	protected function expect($punc) {
+		return $this->expect_token('punc', $punc);
 	}
 	
 	/**
@@ -1111,6 +1157,146 @@ class UglifyJS_parser {
 		}
 		return $this->state['peeked'];
 	}
+	
+	/**
+	 * Move on to the next token
+	 *
+	 * @access  protected
+	 * @return  object
+	 */
+	protected function next() {
+		$this->state['prev'] = $this->state['token'];
+		if ($this->state['peeked']) {
+			$this->state['token'] = $this->state['peeked'];
+			$this->state['peeked'] = null;
+		} else {
+			$this->state['token'] = $this->state['input']->next_token();
+		}
+		return $this->state['token'];
+	}
+	
+	/**
+	 * Get the previous token
+	 *
+	 * @access  protected
+	 * @return  object
+	 */
+	protected function prev() {
+		return $this->state['prev'];
+	}
+	
+	/**
+	 * Check if the parser can insert a semicolon
+	 *
+	 * @access  protected
+	 * @return  bool
+	 */
+	protected function can_insert_semicolon() {
+		return (! $this->strict_mode && (
+			$this->state['token']->nlb || $this->is('eof') || $this->is('punc', '}')
+		));
+	}
+	
+	/**
+	 * Check for a semicolon
+	 *
+	 * @access  protected
+	 * @return  void
+	 */
+	protected function semicolon() {
+		if ($this->is('punc', ';')) {
+			$this->next();
+		} elseif (! $this->can_insert_semicolon()) {
+			$this->unexpected();
+		}
+	}
+	
+	/**
+	 * Read a parenthesised value
+	 *
+	 * @access  protected
+	 * @return  object
+	 */
+	protected function parenthesised() {
+		$this->expect('(');
+		$ex = $this->expression();
+		$this->expect(')');
+		return $ex;
+	}
+	
+	/**
+	 * Add tokens
+	 *
+	 * @access  protected
+	 * @param   string    the text
+	 * @param   int       start
+	 * @param   int       end
+	 * @return  object
+	 */
+	protected function add_tokens($str, $start, $end) {
+		return new UglifyJS_node_with_token($str, $start, $end);
+	}
+	
+	/**
+	 * Gets a statement
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function statement() {
+		if ($this->embed_tokens) {
+			$start = $this->state['token'];
+			$statement = $this->_statement();
+			$statement[0] = $this->add_tokens($statement[0], $start, $this->prev());
+			return $statement;
+		} else {
+			return $this->_statement();
+		}
+	}
+	
+	/**
+	 * Do the statement processing (a sub-function of $this->statement)
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function _statement() {
+		if ($this->is('operator', '/')) {
+			$this->state['peeked'] = null;
+			// Force regular expression parsing
+			$this->state['token'] = $this->state['input']->next_token(true);
+		} else {
+			switch ($this->state['token']->type) {
+				case 'num':
+				case 'string':
+				case 'regexp':
+				case 'operator':
+				case 'atom':
+					return $this->simple_statement();
+				break;
+				case 'name':
+					if (UJSUtil()->is_token($this->peek(), 'punc', ':')) {
+						return $this->labeled_statement(
+							UJSUtil()->prog1(
+								$this->state['token']->value, $this->next, $this->next
+							)
+						);
+					} else {
+						return $this->simple_statement();
+					}
+				break;
+			}
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	
 	
