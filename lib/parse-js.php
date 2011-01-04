@@ -1922,21 +1922,111 @@ class UglifyJS_parser {
 		return $this->expr_op($this->expr_atom(true), 0);
 	}
 	
+	/**
+	 * Handle ternary expressions
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function maybe_conditional() {
+		$expression = $this->expr_ops();
+		if ($this->is('operator', '?')) {
+			$this->next();
+			$yes = $this->expression(false);
+			$this->expect(':');
+			return array('conditional', $expression, $yes, $this->expression(false));
+		}
+		return $expression;
+	}
 	
+	/**
+	 * Check if an expression is assignable
+	 *
+	 * @access  protected
+	 * @param   array     expression
+	 * @return  bool
+	 */
+	protected function is_assignable($expr) {
+		switch ($expr[0]) {
+			case 'dot':
+			case 'sub':
+				return true;
+			break;
+			case 'name':
+				return ($expr[1] != 'this');
+			break;
+		}
+		return false;
+	}
 	
+	/**
+	 * Handles assignment of a ternary
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function maybe_assign() {
+		$left = $this->maybe_conditional();
+		$value = $this->state['token']->value;
+		if ($this->is('operator') && in_array($value, $this->assignment)) {
+			if ($this->is_assignable($left)) {
+				$this->next();
+				return array('assign', $this->assignment[$value], $left, $this->maybe_assign());
+			}
+			$this->parse_error('Invalid assignment');
+		}
+		return $left;
+	}
 	
+	/**
+	 * Handles expressions
+	 *
+	 * @access  protected
+	 * @param   bool      commas
+	 * @return  array
+	 */
+	protected function expression($commas = true) {
+		$expr = $this->maybe_assign();
+		if ($commas && $this->is('punc', ',')) {
+			$this->next();
+			return array('seq', $expr, $this->expression());
+		}
+		return $expr;
+	}
 	
+	/**
+	 * Handle loop nesting
+	 *
+	 * @access  protected
+	 * @param   callback  the function
+	 * @return  mixed
+	 */
+	protected function in_loop($cont) {
+		$this->state['in_loop']++;
+		$ret = $cont();
+		$this->state['in_loop']--;
+		return $ret;
+	}
 	
+/*
+|------------------------------------------------------------------------------
+|                          END OF PARSER FUNCTIONS
+|------------------------------------------------------------------------------
+*/
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	/**
+	 * The public interface, initializes the parsing of the code
+	 *
+	 * @access  public
+	 * @return  array
+	 */
+	public function run_parser() {
+		$arr = array();
+		while (! $this->is('eof')) {
+			$arr[] = $this->statement();
+		}
+		return array('toplevel', $arr);
+	}
 	
 }
 
