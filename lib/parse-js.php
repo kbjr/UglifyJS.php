@@ -1590,6 +1590,133 @@ class UglifyJS_parser {
 		return array('try', $body, $bcatch, $bfinally);
 	}
 	
+	/**
+	 * Handles var definitions
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function vardefs() {
+		$arr = array();
+		while (true) {
+			if (! $this->is('name')) {
+				$this->unexpected();
+			}
+			$name = $this->state['token']->value;
+			$this->next();
+			if ($this->is('operator', '=')) {
+				$this->next();
+				$arr[] = array($name, $this->expression(false));
+			} else {
+				$arr[] = array($name);
+			}
+			if (! $this->is('punc', ',')) {
+				break;
+			}
+		}
+		return $arr;
+	}
+	
+	/**
+	 * Handles var
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function var_() {
+		return array('var', $this->vardefs());
+	}
+	
+	/**
+	 * Handles const
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function const_() {
+		return array('const', $this->vardefs());
+	}
+	
+	/**
+	 * Handles new
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function new_() {
+		$newexp = $this->expr_atom(false);
+		$args = null;
+		if ($this->is('punc', '(')) {
+			$this->next();
+			$args = $this->expr_list(')');
+		} else {
+			$args = array();
+		}
+		return $this->subscripts(array('new', $newexp, $args), true);
+	}
+	
+	/**
+	 * Handle atom expressions
+	 *
+	 * @access  protected
+	 * @param   bool      allow calls
+	 * @return  array
+	 */
+	protected function expr_atom($allow_calls = false) {
+		if ($this->is('operator', 'new')) {
+			$this->next();
+			return $this->new_();
+		}
+		if ($this->is('operator') && in_array($this->state['token']->value, $this->unary_prefix)) {
+			return $this->make_unary('unary-prefix',
+				UJSUtil()->prog1($this->state['token']->value, $this->next),
+				$this->expr_atom($allow_calls)
+			);
+		}
+		if ($this->is('punc')) {
+			switch ($this->state['token']->value) {
+				case '(':
+					$this->next();
+					return $this->subscripts(
+						UJSUtil()->prog1($this->expression, UJSUtil()->curry($this->expect, ')')), $allow_calls
+					);
+				break;
+				case '[':
+					$this->next();
+					return $this->subscripts($this->array_(), $allow_calls);
+				break;
+				case '{':
+					$this->next();
+					return $this->subscripts($this->object_(), $allow_calls);
+				break;
+			}
+			$this->unexpected();
+		}
+		if ($this->is('keyword', 'function')) {
+			$this->next();
+			return $this->subscripts($this->function_(false), $allow_calls);
+		}
+		if (in_array($this->state['token']->type, $this->atomic_start_token)) {
+			$token_value = $this->state['token']->value;
+			$atom = ($this->state['token']->type == 'regexp')
+				? array('regexp', $token_value[0], $token_value[1])
+				: array($this->state['token']->type, $this->state['token']->value);
+			return $this->subscripts(UJSUtil()->prog1($atom, $this->next), $allow_calls);
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	
 	
@@ -1605,26 +1732,5 @@ class UglifyJS_parser {
 	
 	
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /* End of file parse-js.php */
