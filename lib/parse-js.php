@@ -38,8 +38,8 @@ function UJSF($obj, $method) {
 	return new UJSF_func($obj, $method);
 }
 class UJSF_func {
-	protected $obj = null;
-	protected $method = null;
+	public $obj = null;
+	public $method = null;
 	public function __construct($obj, $method) {
 		$this->obj = $obj;
 		$this->method = $method;
@@ -52,7 +52,7 @@ class UJSF_func {
 /**
  * The parse error exception class
  */
-class UglifyJS_parse_error {
+class UglifyJS_parse_error extends Exception {
 	public $msg = null;
 	public $line = null;
 	public $col = null;
@@ -78,10 +78,10 @@ class UglifyJS_tokenizer {
 	/**
 	 * JavaScript Keywords
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $keywords = array(
+	public $keywords = array(
 		'break',
 		'case',
 		'catch',
@@ -112,10 +112,10 @@ class UglifyJS_tokenizer {
 	/**
 	 * Reserved Words
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $reserved_words = array(
+	public $reserved_words = array(
 		'abstract',
 		'boolean',
 		'byte',
@@ -137,7 +137,7 @@ class UglifyJS_tokenizer {
 		'native',
 		'package',
 		'private',
-		'protected',
+		'public',
 		'public',
 		'short',
 		'static',
@@ -151,10 +151,10 @@ class UglifyJS_tokenizer {
 	/**
 	 * Keywords Before Expression
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $keywords_before_expression = array(
+	public $keywords_before_expression = array(
 		'return',
 		'new',
 		'delete',
@@ -165,10 +165,10 @@ class UglifyJS_tokenizer {
 	/**
 	 * Keywords ATOM
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $keywords_atom = array(
+	public $keywords_atom = array(
 		'false',
 		'null',
 		'true',
@@ -178,10 +178,10 @@ class UglifyJS_tokenizer {
 	/**
 	 * Operator Characters
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $operator_chars = array(
+	public $operator_chars = array(
 		'+', '-', '*', '&', '%', '=', '<',
 		'>', '!', '?', '|', '~', '^'
 	);
@@ -189,34 +189,34 @@ class UglifyJS_tokenizer {
 	/**
 	 * Hexadecimal Number Regular Expression
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    string
 	 */
-	protected $hex_number = '/^0x[0-9a-f]+$/i';
+	public $hex_number = '/^0x[0-9a-f]+$/i';
 	
 	/**
 	 * Octal Number Regular Expression
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    string
 	 */
-	protected $oct_number = '/^0[0-7]+$/';
+	public $oct_number = '/^0[0-7]+$/';
 	
 	/**
 	 * Decimal Number Regular Expression
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    string
 	 */
-	protected $dec_number = '/^\d*\.?\d*(?:e[+-]?\d*(?:\d\.?|\.?\d)\d*)?$/i';
+	public $dec_number = '/^\d*\.?\d*(?:e[+-]?\d*(?:\d\.?|\.?\d)\d*)?$/i';
 	
 	/**
 	 * Operators
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $operators = array(
+	public $operators = array(
 		'in',
 		'instanceof',
 		'typeof',
@@ -268,39 +268,39 @@ class UglifyJS_tokenizer {
 	/**
 	 * Whitespace Characters
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $whitespace_chars = array( ' ', "\n", "\r", "\t" );
+	public $whitespace_chars = array( ' ', "\n", "\r", "\t" );
 	
 	/**
 	 * Puncuation Before Expressions
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $punc_before_expression = array( '[', '{', '}', '(', ',', '.', ';', ':' );
+	public $punc_before_expression = array( '[', '{', '}', '(', ',', '.', ';', ':' );
 	
 	/**
 	 * Puncuation Characters
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $punc_chars = array( '[', ']', '{', '}', '(', ')', ',', ';', ':' );
+	public $punc_chars = array( '[', ']', '{', '}', '(', ')', ',', ';', ':' );
 	
 	/**
 	 * Regular Expression Modifiers
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $regexp_modifiers = array( 'g', 'i', 'm', 's', 'y' );
+	public $regexp_modifiers = array( 'g', 'i', 'm', 's', 'y' );
 	
 	/**
 	 * Unary Prefixes
 	 */
-	protected $unary_prefix = array(
+	public $unary_prefix = array(
 		'typeof',
 		'void',
 		'delete',
@@ -315,7 +315,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Unary Postfixes
 	 */
-	protected $unary_postfix = array( '--', '++' );
+	public $unary_postfix = array( '--', '++' );
 	
 /*
 |----------------------------------------------------------------------------------------
@@ -326,7 +326,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Check if a character is alpha-numeric
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the character to test
 	 * @return  bool
 	 */
@@ -342,7 +342,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Check if a character is an identifier character
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the character to test
 	 * @return  bool
 	 */
@@ -353,7 +353,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Check if a character is a digit
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the character to test
 	 * @return  bool
 	 */
@@ -365,7 +365,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Parse a number string into a number
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the hex string
 	 * @return  mixed
 	 */
@@ -383,7 +383,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Check for a specific type/value token
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   object    the token
 	 * @param   string    the token type
 	 * @param   string    the value
@@ -402,10 +402,10 @@ class UglifyJS_tokenizer {
 	/**
 	 * Information about the current state of the tokenizer
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $state = array(
+	public $state = array(
 		'text'           => null,
 		'pos'            => 0,
 		'tokpos'         => 0,
@@ -420,10 +420,10 @@ class UglifyJS_tokenizer {
 	/**
 	 * The skip_comments parameter of the constructor
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    bool
 	 */
-	protected $skip_comments = null;
+	public $skip_comments = null;
 	
 	/**
 	 * Constructor
@@ -441,7 +441,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Get the character at the current location
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  string
 	 */
 	public function peek() {
@@ -451,7 +451,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Get the next character from source
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  string
 	 */
 	public function next($signal_eof = false) {
@@ -474,7 +474,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Check if the tokenizer has reached the end of the source
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  bool
 	 */
 	public function eof() {
@@ -484,7 +484,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Find a string within the source starting at the current position
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the item to find
 	 * @param   bool      signal an EOF
 	 * @return  int
@@ -501,7 +501,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Start a token at the current location
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  void
 	 */
 	public function start_token() {
@@ -513,7 +513,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Creates a token object
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the token type
 	 * @param   string    the token value
 	 * @return  object
@@ -540,7 +540,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Skips over whitespace
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  void
 	 */
 	public function skip_whitespace() {
@@ -550,7 +550,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Continues reading while a given condition remains true
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   callback  the condition
 	 * @return  string
 	 */
@@ -558,7 +558,7 @@ class UglifyJS_tokenizer {
 		$ret = '';
 		$ch = $this->peek();
 		$i = 0;
-		while ($ch && $pred($ch, $i++)) {
+		while ($ch && $pred($ch, $i++, $this)) {
 			$ret .= $this->next();
 			$ch = $this->peek();
 		}
@@ -568,7 +568,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Throws a parse error
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the error message
 	 * @return  void
 	 */
@@ -579,35 +579,35 @@ class UglifyJS_tokenizer {
 	/**
 	 * Reads number values
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    a prefix
 	 * @return  object
 	 */
-	protected $tmp = null;
+	public $tmp = null;
 	public function read_num($prefix = '') {
 		$this->tmp = array(
 			'has_e' => false,
 			'after_e' => false,
 			'has_x' => false
 		);
-		$num = $this->read_while(function($ch, $i) {
+		$num = $this->read_while(function($ch, $i, $self) {
 			if ($ch == 'x' || $ch == 'X') {
-				if ($this->tmp['has_x']) return false;
-				$this->tmp['has_x'] = true;
+				if ($self->tmp['has_x']) return false;
+				$self->tmp['has_x'] = true;
 				return $true;
 			}
-			if (! $this->tmp['has_x'] && ($ch = 'e' || $ch = 'E')) {
-				if ($this->tmp['has_e']) return false;
-				$this->tmp['has_e'] = true;
-				$this->tmp['after_e'] = true;
+			if (! $self->tmp['has_x'] && ($ch = 'e' || $ch = 'E')) {
+				if ($self->tmp['has_e']) return false;
+				$self->tmp['has_e'] = true;
+				$self->tmp['after_e'] = true;
 				return true;
 			}
 			if ($ch == '-') {
-				if ($this->tmp['after_e'] || ($i == 0 && ! $prefix)) return true;
+				if ($self->tmp['after_e'] || ($i == 0 && ! $prefix)) return true;
 				return false;
 			}
-			if ($ch == '+') return $this->tmp['after_e'];
-			return ($ch == '.' || $this->is_alphanumeric_char($ch));
+			if ($ch == '+') return $self->tmp['after_e'];
+			return ($ch == '.' || $self->is_alphanumeric_char($ch));
 		});
 		$this->tmp = null;
 		if ($prefix) $num = $prefix.$num;
@@ -622,7 +622,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Read backslash escaped characters
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  string
 	 */
 	public function read_escaped_char() {
@@ -644,7 +644,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Reads a number of bytes as hex
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   int       the number of bytes
 	 * @return  string
 	 */
@@ -665,30 +665,30 @@ class UglifyJS_tokenizer {
 	/**
 	 * Read a JavaScript DOMString
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function read_string() {
-		return $this->with_eof_error('Unterminated string constant', function() {
-			$quote = $this->next();
+		return $this->with_eof_error('Unterminated string constant', function($self) {
+			$quote = $self->next();
 			$ret = '';
 			while (true) {
-				$ch = $this->next(true);
+				$ch = $self->next(true);
 				if ($ch == '\\') {
-					$ch = $this->read_escaped_char();
+					$ch = $self->read_escaped_char();
 				} else if ($ch == $quote) {
 					break;
 				}
 				$ret .= $ch;
 			}
-			return $this->token('string', $ret);
+			return $self->token('string', $ret);
 		});
 	}
 	
 	/**
 	 * Fetch a substring starting at state['pos']
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   int       the substring ending position
 	 * @param   int       an extra amount to add to state['pos']
 	 * @return  string
@@ -708,7 +708,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Reads a line comment
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function read_line_comment() {
@@ -721,16 +721,16 @@ class UglifyJS_tokenizer {
 	/**
 	 * Read multiline comment
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function read_multiline_comment() {
-		return $this->with_eof_error('Unterminated multiline comment', function() {
+		return $this->with_eof_error('Unterminated multiline comment', function($self) {
 			next();
-			$i = $this->find('*/', true);
-			$text = $this->substr($i, 2);
-			$tok = $this->token('comment2', $text);
-			$this->state['newline_before'] = (strpos($this->state['text'], "\n") !== false);
+			$i = $self->find('*/', true);
+			$text = $self->substr($i, 2);
+			$tok = $self->token('comment2', $text);
+			$self->state['newline_before'] = (strpos($self->state['text'], "\n") !== false);
 			return $tok;
 		});
 	}
@@ -738,15 +738,15 @@ class UglifyJS_tokenizer {
 	/**
 	 * Read a regular expression literal
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function read_regexp() {
-		return $this->with_eof_error('Unterminated regular expression', function() {
+		return $this->with_eof_error('Unterminated regular expression', function($self) {
 			$prev_backslash = false;
 			$regexp = '';
 			$in_class = false;
-			while ($ch = $this->next(true)) {
+			while ($ch = $self->next(true)) {
 				if ($prev_backslash) {
 					$regexp .= '\\'.$ch;
 					$prev_backslash = false;
@@ -763,8 +763,8 @@ class UglifyJS_tokenizer {
 				} else {
 					$regexp .= $ch;
 				}
-				$mods = $this->read_while(function($ch) {
-					return in_array($ch, $this->regexp_modifiers);
+				$mods = $this->read_while(function($ch, $i, $self) {
+					return in_array($ch, $self->regexp_modifiers);
 				});
 				return $this->token('regexp', array($regexp, $mods));
 			}
@@ -774,7 +774,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Reads an operator
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function read_operator($prefix = null) {
@@ -789,7 +789,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Handles slashes
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function handle_slash() {
@@ -824,7 +824,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Handles a dot
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function handle_dot() {
@@ -837,7 +837,7 @@ class UglifyJS_tokenizer {
 	/**
 	 * Reads a word (name, keyword, etc)
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function read_word() {
@@ -856,14 +856,14 @@ class UglifyJS_tokenizer {
 	/**
 	 * Run a callback with EOF handling
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the EOF error message
 	 * @param   callback  the function to run
 	 * @return  mixed
 	 */
 	public function with_eof_error($err, $func) {
 		try {
-			return $func();
+			return $func($this);
 		} catch (UglifyJS_EOF $e) {
 			$this->parse_error($err);
 		}
@@ -942,10 +942,10 @@ class UglifyJS_parser {
 	/**
 	 * Unary prefixes
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $unary_prefix = array(
+	public $unary_prefix = array(
 		'typeof',
 		'void',
 		'delete',
@@ -960,18 +960,18 @@ class UglifyJS_parser {
 	/**
 	 * Unary postfixes
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $unary_postfix = array( '--', '++' );
+	public $unary_postfix = array( '--', '++' );
 	
 	/**
 	 * Assignment operators
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $assignment = array(
+	public $assignment = array(
 		'='    => true,
 		'+='   => '+',
 		'-='   => '-',
@@ -991,10 +991,10 @@ class UglifyJS_parser {
 	/**
 	 * Order of operations
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $precedence = array(
+	public $precedence = array(
 		'||'         => 1,
 		'&&'         => 2,
 		'|'          => 3,
@@ -1023,20 +1023,20 @@ class UglifyJS_parser {
 	/**
 	 * Statements which can recieve labels
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $statements_with_labels = array(
+	public $statements_with_labels = array(
 		'for', 'do', 'while', 'switch'
 	);
 	
 	/**
 	 * Atomic start tokens
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $atomic_start_token = array(
+	public $atomic_start_token = array(
 		'atom', 'num', 'string', 'regexp', 'name'
 	);
 	
@@ -1049,7 +1049,7 @@ class UglifyJS_parser {
 	/**
 	 * Test the type/value of the current token
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the type
 	 * @param   string    the value
 	 * @return  bool
@@ -1061,7 +1061,7 @@ class UglifyJS_parser {
 	/**
 	 * Check for a specific type/value token
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   object    the token
 	 * @param   string    the token type
 	 * @param   string    the value
@@ -1077,10 +1077,10 @@ class UglifyJS_parser {
 	/**
 	 * The current parser state
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    array
 	 */
-	protected $state = array(
+	public $state = array(
 		'input'       => null,
 		'token'       => null,
 		'prev'        => null,
@@ -1093,18 +1093,18 @@ class UglifyJS_parser {
 	/**
 	 * Run in strict mode
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    bool
 	 */
-	protected $strict_mode = false;
+	public $strict_mode = false;
 	
 	/**
 	 * Embed tokens
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @type    bool
 	 */
-	protected $embed_tokens = false;
+	public $embed_tokens = false;
 	
 	/**
 	 * Constructor
@@ -1117,14 +1117,14 @@ class UglifyJS_parser {
 	 */
 	public function __construct($text, $strict_mode = false, $embed_tokens = false) {
 		$this->state['input'] = new UglifyJS_tokenizer($text, true);
-		$this->strict_mode = ($strict_mode == true);
-		$this->embed_tokens = ($embed_tokens == true);
+		$this->strict_mode =!! $strict_mode;
+		$this->embed_tokens =!! $embed_tokens;
 	}	
 	
 	/**
 	 * Throws a parse error
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the error message
 	 * @param   number    line
 	 * @param   number    column
@@ -1136,14 +1136,14 @@ class UglifyJS_parser {
 		throw new UglifyJS_parse_error($msg,
 			(($line === null) ? $ctx['tokline'] : $line),
 			(($col === null)  ? $ctx['tokcol']  : $col),
-			(($pos === null)  ? $cxt['pos']     : $pos)
+			(($pos === null)  ? $ctx['pos']     : $pos)
 		);
 	}
 	
 	/**
 	 * Throws a token error
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the error message
 	 * @param   object    the token
 	 * @return  void
@@ -1155,7 +1155,7 @@ class UglifyJS_parser {
 	/**
 	 * Throw an unexpected token error
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   object    the token
 	 * @return  void
 	 */
@@ -1169,7 +1169,7 @@ class UglifyJS_parser {
 	/**
 	 * Tell the parser to expect a specific token
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the token type
 	 * @param   string    the token value
 	 * @return  object
@@ -1185,7 +1185,7 @@ class UglifyJS_parser {
 	/**
 	 * Expect a specific punctuation character
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the character
 	 * @return  object
 	 */
@@ -1196,7 +1196,7 @@ class UglifyJS_parser {
 	/**
 	 * Peek at the current token
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function peek() {
@@ -1209,7 +1209,7 @@ class UglifyJS_parser {
 	/**
 	 * Move on to the next token
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function next() {
@@ -1226,7 +1226,7 @@ class UglifyJS_parser {
 	/**
 	 * Get the previous token
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function prev() {
@@ -1236,7 +1236,7 @@ class UglifyJS_parser {
 	/**
 	 * Check if the parser can insert a semicolon
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  bool
 	 */
 	public function can_insert_semicolon() {
@@ -1248,7 +1248,7 @@ class UglifyJS_parser {
 	/**
 	 * Check for a semicolon
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  void
 	 */
 	public function semicolon() {
@@ -1262,7 +1262,7 @@ class UglifyJS_parser {
 	/**
 	 * Read a parenthesised value
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  object
 	 */
 	public function parenthesised() {
@@ -1275,7 +1275,7 @@ class UglifyJS_parser {
 	/**
 	 * Add tokens
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the text
 	 * @param   int       start
 	 * @param   int       end
@@ -1288,7 +1288,7 @@ class UglifyJS_parser {
 	/**
 	 * Gets a statement
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function statement() {
@@ -1305,7 +1305,7 @@ class UglifyJS_parser {
 	/**
 	 * Do the statement processing (a sub-function of $this->statement)
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function _statement() {
@@ -1431,7 +1431,7 @@ class UglifyJS_parser {
 	/**
 	 * Handle a statement with a label
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    the label name
 	 * @return  array
 	 */
@@ -1448,7 +1448,7 @@ class UglifyJS_parser {
 	/**
 	 * Handle a simple statement
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function simple_statement() {
@@ -1460,7 +1460,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles break and continue
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    "break" or "continue"
 	 * @return  array
 	 */
@@ -1480,7 +1480,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles a for loop
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function for_() {
@@ -1511,7 +1511,7 @@ class UglifyJS_parser {
 	/**
 	 * Handle a function
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   bool      in a statement?
 	 * @return  array
 	 */
@@ -1555,7 +1555,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles if blocks
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function if_() {
@@ -1572,7 +1572,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles code blocks
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function block_() {
@@ -1591,7 +1591,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles a switch block
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function switch_block_() {
@@ -1626,7 +1626,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles try blocks
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function try_() {
@@ -1657,7 +1657,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles var definitions
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function vardefs() {
@@ -1677,6 +1677,7 @@ class UglifyJS_parser {
 			if (! $this->is('punc', ',')) {
 				break;
 			}
+			$this->next();
 		}
 		return $arr;
 	}
@@ -1684,7 +1685,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles var
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function var_() {
@@ -1694,7 +1695,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles const
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function const_() {
@@ -1704,7 +1705,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles new
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function new_() {
@@ -1722,7 +1723,7 @@ class UglifyJS_parser {
 	/**
 	 * Handle atom expressions
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   bool      allow calls
 	 * @return  array
 	 */
@@ -1773,7 +1774,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles expression lists
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    closing
 	 * @param   bool      allow trailing comma?
 	 * @return  array
@@ -1797,7 +1798,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles array literals
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function array_() {
@@ -1807,7 +1808,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles object literals
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function object_() {
@@ -1832,7 +1833,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles property names
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  mixed
 	 */
 	public function as_property_name() {
@@ -1852,7 +1853,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles names
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  mixed
 	 */
 	public function as_name() {
@@ -1874,7 +1875,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles subscripts
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   array     expression
 	 * @param   bool      allow calls
 	 * @return  array
@@ -1907,7 +1908,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles unary operators
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   string    pre or post
 	 * @param   string    operator
 	 * @param   array     expression
@@ -1923,7 +1924,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles expression operators
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   array     left side
 	 * @param   int       minimum precedence
 	 * @return  array
@@ -1942,7 +1943,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles expression operators
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function expr_ops() {
@@ -1952,7 +1953,7 @@ class UglifyJS_parser {
 	/**
 	 * Handle ternary expressions
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function maybe_conditional() {
@@ -1969,7 +1970,7 @@ class UglifyJS_parser {
 	/**
 	 * Check if an expression is assignable
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   array     expression
 	 * @return  bool
 	 */
@@ -1989,7 +1990,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles assignment of a ternary
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @return  array
 	 */
 	public function maybe_assign() {
@@ -2008,7 +2009,7 @@ class UglifyJS_parser {
 	/**
 	 * Handles expressions
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   bool      commas
 	 * @return  array
 	 */
@@ -2024,7 +2025,7 @@ class UglifyJS_parser {
 	/**
 	 * Handle loop nesting
 	 *
-	 * @access  protected
+	 * @access  public
 	 * @param   callback  the function
 	 * @return  mixed
 	 */
@@ -2049,6 +2050,7 @@ class UglifyJS_parser {
 	 */
 	public function run_parser() {
 		$arr = array();
+		$this->next();
 		while (! $this->is('eof')) {
 			$arr[] = $this->statement();
 		}

@@ -43,7 +43,14 @@ define('UGLIFYJS_VERSION', '0.1.1-a');
  * Output internal errors (for debug only).
  * Setting this to false will cause errors to be ignored silently.
  */
-define('UGLIFYJS_INTERNAL_ERRORS', true);
+define('UGLIFYJS_DEBUG', true);
+
+/**
+ * Set error handling
+ */
+if (UGLIFYJS_DEBUG) {
+	error_reporting(-1);
+}
 
 /**
  * The core class
@@ -94,7 +101,11 @@ class UglifyJS {
 	 * @access  protected
 	 * @type    callback
 	 */
-	protected $exception_handler = null;
+	protected $_exception_handler = null;
+	protected function exception_handler($ex) {
+		$handler = $this->_exception_handler;
+		return $handler($ex);
+	}
 	
 	/**
 	 * The Constructor
@@ -105,7 +116,13 @@ class UglifyJS {
 	public function __construct() {
 		require_once(UGLIFYJS_LIBPATH.'parse-js.php');
 		// Set the default error handler
-		$this->exception_handler = function($ex) { throw $ex; };
+		$this->_exception_handler = function($ex) {
+			extract((array) $ex, EXTR_SKIP);
+			echo "UglifyJS Parse error: {$msg}; line: {$line}, col: {$col}, pos: {$pos}\n";
+			if (UGLIFYJS_DEBUG) {
+				throw $ex; // For the call stack
+			}
+		};
 	}
 	
 	/**
@@ -208,7 +225,7 @@ class UglifyJS {
 		$result = '';
 		// Set the error handler
 		set_error_handler(function($errno, $msg, $file, $line, $context) {
-			if (UGLIFYJS_INTERNAL_ERRORS) {
+			if (UGLIFYJS_DEBUG) {
 				echo 'UglifyJS Internal Error: '.$msg.' occured in '.$file.' on line '.$line.".\nContext:\n";
 				print_r($context);
 				die();
@@ -238,9 +255,6 @@ class UglifyJS {
 			restore_error_handler();
 			return $result;
 		// Handle parse errors
-		} catch (UglifyJS_parse_error $ex) {
-			$this->exception_handler($ex);
-		// Handle other exceptions
 		} catch (Exception $ex) {
 			$this->exception_handler($ex);
 		}
