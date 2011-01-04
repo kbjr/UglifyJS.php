@@ -1703,13 +1703,105 @@ class UglifyJS_parser {
 				: array($this->state['token']->type, $this->state['token']->value);
 			return $this->subscripts(UJSUtil()->prog1($atom, $this->next), $allow_calls);
 		}
+		$this->unexpected();
 	}
 	
+	/**
+	 * Handles expression lists
+	 *
+	 * @access  protected
+	 * @param   string    closing
+	 * @param   bool      allow trailing comma?
+	 * @return  array
+	 */
+	protected function expr_list($closing, $allow_trailing_comma = false) {
+		$first = true;
+		$arr = array();
+		while (! $this->is('punc', $closing)) {
+			if ($first) {
+				$first = false;
+			} else {
+				$this->expect(',');
+			}
+			if ($allow_trailing_comma && $this->is('punc', $closing)) break;
+			$arr[] = $this->expression(false);
+		}
+		$this->next();
+		return $arr;
+	}
 	
+	/**
+	 * Handles array literals
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function array_() {
+		return array('array', $this->expr_list(']', ! $this->strict_mode));
+	}
 	
+	/**
+	 * Handles object literals
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function object_() {
+		$first = true;
+		$arr = array();
+		while (! $this->is('punc', '}')) {
+			if ($first) {
+				$first = false;
+			} else {
+				$this->expect(',');
+			}
+			if (! $this->strict_mode && $this->is('punc', '}')) break;
+			$name = $this->as_property_name();
+			$this->expect(':');
+			$value = $this->expression(false);
+			$arr[] = array($name, $value);
+		}
+		$this->next();
+		return array('object', $arr);
+	}
 	
+	/**
+	 * Handles property names
+	 *
+	 * @access  protected
+	 * @return  mixed
+	 */
+	protected function as_property_name() {
+		switch ($this->state['token']->type) {
+			case 'string':
+			case 'num':
+				return UJSUtil()->prog1($this->state['token']->value, $this->next);
+			break;
+			default:
+				return $this->as_name();
+			break;
+		}
+	}
 	
-	
+	/**
+	 * Handles names
+	 *
+	 * @access  protected
+	 * @return  mixed
+	 */
+	protected function as_name() {
+		switch ($this->state['token']->type) {
+			case 'name':
+			case 'operator':
+			case 'keyword':
+			case 'atom':
+				return UJSUtil()->prog1($this->state['token']->value, $this->next);
+			break;
+			default:
+				$this->unexpected();
+			break;
+		}
+	}
 	
 	
 	
