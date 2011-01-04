@@ -11,7 +11,7 @@ require_once('uglify-js.php');
 
 // Set options
 UJS()->set_options(array(
-	// ...
+	'show_copyright' => true
 ));
 
 // Do the string parsing and output

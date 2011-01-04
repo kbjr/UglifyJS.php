@@ -40,6 +40,12 @@ define('UGLIFYJS_FUNCTION', 'UJS');
 define('UGLIFYJS_VERSION', '0.1.1-a');
 
 /**
+ * Output internal errors (for debug only).
+ * Setting this to false will cause errors to be ignored silently.
+ */
+define('UGLIFYJS_INTERNAL_ERRORS', true);
+
+/**
  * The core class
  */
 class UglifyJS {
@@ -83,6 +89,14 @@ class UglifyJS {
 	);
 	
 	/**
+	 * The user defined exception handler
+	 *
+	 * @access  protected
+	 * @type    callback
+	 */
+	protected $exception_handler = null;
+	
+	/**
 	 * The Constructor
 	 *
 	 * @access  public
@@ -90,6 +104,8 @@ class UglifyJS {
 	 */
 	public function __construct() {
 		require_once(UGLIFYJS_LIBPATH.'parse-js.php');
+		// Set the default error handler
+		$this->exception_handler = function($ex) { throw $ex; };
 	}
 	
 	/**
@@ -149,6 +165,39 @@ class UglifyJS {
 	}
 	
 	/**
+	 * Sets the parse error handler
+	 *
+	 * @access  public
+	 * @param   callback  the handler
+	 * @return  bool
+	 */
+	public function set_exception_handler($callback) {
+		if (is_callable($callback)) {
+			$this->exception_handler = $callback;
+			return true;
+		} else { return false; }
+	}
+	
+	/**
+	 * Handles the show_copyright option
+	 *
+	 * @access  protected
+	 * @param   array     the initial comments
+	 * @return  string
+	 */
+	protected function show_copyright($comments) {
+		$ret = '';
+		foreach ($comments as $i => $comment) {
+			if ($comment->type == 'comment1') {
+				$ret .= '//'.$comment->value."\n";
+			} else {
+				$ret .= '/*'.$comment->value.'*/';
+			}
+		}
+		return $ret;
+	}
+	
+	/**
 	 * Parse a block of code and return
 	 *
 	 * @access  protected
@@ -156,9 +205,99 @@ class UglifyJS {
 	 * @return  string
 	 */
 	protected function parse_code_block($code) {
-		return $code;
+		$result = '';
+		// Set the error handler
+		set_error_handler(function($errno, $msg, $file, $line, $context) {
+			if (UGLIFYJS_INTERNAL_ERRORS) {
+				echo 'UglifyJS Internal Error: '.$msg.' occured in '.$file.' on line '.$line.".\nContext:\n";
+				print_r($context);
+				die();
+			}
+			return true;
+		});
+		// Handle the show_copyright option
+		if ($this->options['show_copyright']) {
+			$initial_comments = array();
+			$tokenizer = new UglifyJS_tokenizer($code, false);
+			$comment = $tokenizer->next_token();
+			$prev = null;
+			while (strpos($comment->type, 'comment') === 0 && (! $prev || $prev == $comment->type)) {
+				$initial_comments[] = $comment;
+				$prev = $comment->type;
+				$comment = $tokenizer->next_token();
+			}
+			$result .= $this->show_copyright($initial_comments);
+		}
+		// Start parsing
+		try {
+			$this->start_timer('parse');
+			$ast = new UglifyJS_parser($code);
+			$ast = $ast->run_parser();
+			$parse_time = $this->read_timer('parse');
+			// Reset the error handler
+			restore_error_handler();
+			return $result;
+		// Handle parse errors
+		} catch (UglifyJS_parse_error $ex) {
+			$this->exception_handler($ex);
+		// Handle other exceptions
+		} catch (Exception $ex) {
+			$this->exception_handler($ex);
+		}
+		// Reset the error handler
+		restore_error_handler();
 	}
 	
+	/**
+	 * Benchmarking timers
+	 *
+	 * @access  protected
+	 * @type    array
+	 */
+	protected $timers = array();
+	
+	/**
+	 * Create/start a benchmarker
+	 *
+	 * @access  protected
+	 * @param   string    the name
+	 * @return  void
+	 */
+	protected function start_timer($name) {
+		$this->timers[$name] = new UglifyJS_benchmarker(true);
+		$this->timers[$name]->start();
+	}
+	
+	/**
+	 * Gets the time from a benchmarker
+	 *
+	 * @access  protected
+	 * @return  float
+	 */
+	protected function read_timer($name) {
+		if (isset($this->timers[$name])) {
+			return $this->timers[$name]->get_time();
+		}
+	}
+	
+}
+
+/**
+ * Handles benchmarking
+ */
+class UglifyJS_benchmarker {
+	protected $start = null;
+	protected $float = null;
+	public function __construct($float = false) {
+		$this->float =!! $float;
+	}
+	public function start() {
+		$this->start = microtime($this->float);
+	}
+	public function get_time() {
+		$end = microtime($this->float);
+		return ($end - $this->start);
+	}
 }
 
 /**

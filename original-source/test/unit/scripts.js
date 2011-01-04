@@ -1,3 +1,4 @@
+// Some comment
 var fs = require('fs'),
 	uglify = require('uglify-js'),
 	jsp = uglify.parser,
