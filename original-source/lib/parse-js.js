@@ -1075,8 +1075,7 @@ function parse($TEXT, strict_mode, embed_tokens) {
 						return subscripts(as("call", expr, expr_list(")")), true);
 				}
 				if (allow_calls && is("operator") && HOP(UNARY_POSTFIX, S.token.value)) {
-						return prog1(curry(make_unary, "unary-postfix", S.token.value, expr),
-									 next);
+						return prog1(curry(make_unary, "unary-postfix", S.token.value, expr), next);
 				}
 				return expr;
 		};

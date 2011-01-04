@@ -10,7 +10,7 @@
 | @author     James Brumond
 | @version    0.1.1-a
 | @copyright  Copyright 2010 James Brumond
-| @license    Dual licensed under MIT and GPL
+| @license    Dual licensed under MIT and GPL$this->state['token']->value
 | @requires   PHP >= 5.3.0
 |
 |----------------------------------------------------------
@@ -24,11 +24,6 @@
 | [2] http://marijn.haverbeke.nl/parse-js/
 |
 */
-
-/**
- * Import Utilities
- */
-require_once(UGLIFYJS_LIBPATH.'parse-utilities.php');
 
 /**
  * The parse error exception class
@@ -359,6 +354,19 @@ class UglifyJS_tokenizer {
 			return ((float) $num);
 		}
 		return false;
+	}
+	
+	/**
+	 * Check for a specific type/value token
+	 *
+	 * @access  protected
+	 * @param   object    the token
+	 * @param   string    the token type
+	 * @param   string    the value
+	 * @return  bool
+	 */
+	protected function is_token($token, $type, $value = null) {
+		return ($token->type == $type && ($value === null || $token->value == $value));
 	}
 	
 /*
@@ -1023,7 +1031,20 @@ class UglifyJS_parser {
 	 * @return  bool
 	 */
 	protected function is($type, $value = null) {
-		return UJSUtil()->is_token($this->state['token'], $type, $value);
+		return $this->is_token($this->state['token'], $type, $value);
+	}
+	
+	/**
+	 * Check for a specific type/value token
+	 *
+	 * @access  protected
+	 * @param   object    the token
+	 * @param   string    the token type
+	 * @param   string    the value
+	 * @return  bool
+	 */
+	protected function is_token($token, $type, $value = null) {
+		return ($token->type == $type && ($value === null || $token->value == $value));
 	}
 	
 	/**
@@ -1275,12 +1296,11 @@ class UglifyJS_parser {
 					return $this->simple_statement();
 				break;
 				case 'name':
-					if (UJSUtil()->is_token($this->peek(), 'punc', ':')) {
-						return $this->labeled_statement(
-							UJSUtil()->prog1(
-								$this->state['token']->value, $this->next, $this->next
-							)
-						);
+					if ($this->is_token($this->peek(), 'punc', ':')) {
+						$token_value = $this->state['token']->value;
+						$this->next();
+						$this->next();
+						return $this->labeled_statement($token_value);
 					} else {
 						return $this->simple_statement();
 					}
@@ -1304,7 +1324,8 @@ class UglifyJS_parser {
 					}
 				break;
 				case 'keyword':
-					$token_value = UJSUtil()->prog1($this->state['token']->value, $this->next);
+					$token_value = $this->state['token']->value;
+					$this->next();
 					switch ($token_value) {
 						case 'break':
 						case 'continue':
@@ -1317,7 +1338,9 @@ class UglifyJS_parser {
 						case 'do':
 							return call_user_func(function($body) {
 								$this->expect_token('keyword', 'while');
-								return array('do', UJSUtil()->prog1($this->parenthesised, $this->semicolon), $body);
+								$paren = $this->parenthesised();
+								$this->semicolon();
+								return array('do', $paren, $body);
 							}, $this->in_loop($this->statement));
 						break;
 						case 'for':
@@ -1337,7 +1360,8 @@ class UglifyJS_parser {
 								$this->next();
 								$value = null;
 							} else {
-								$value = UJSUtil()->prog1($this->expression, $this->semicolon);
+								$value = $this->expression();
+								$this->semicolon();
 							}
 							return array('return', $value);
 						break;
@@ -1345,19 +1369,25 @@ class UglifyJS_parser {
 							return array('switch', $this->parenthesised(), $this->switch_block_());
 						break;
 						case 'throw':
-							return array('throw', UJSUtil()->prog1($this->expression, $this->semicolon));
+							$expr = $this->expression();
+							$this->semicolon();
+							return array('throw', $expr);
 						break;
 						case 'try':
 							return $this->try_();
 						break;
 						case 'var':
-							return UJSUtil()->prog1($this->var_(), $this->semicolon());
+							$var = $this->var_();
+							$this->semicolon();
+							return $var;
 						break;
 						case 'const':
-							return UJSUtil()->prog1($this->const_(), $this->semicolon());
+							$const = $this->const_();
+							$this->semicolon();
+							return $const;
 						break;
 						case 'while':
-							return UJSUtil()->prog1('while', $this->parenthesised(), $this->in_loop($this->statement));
+							return array('while', $this->parenthesised(), $this->in_loop($this->statement));
 						break;
 						case 'with':
 							return array('with', $this->parenthesised(), $this->statement());
@@ -1395,7 +1425,9 @@ class UglifyJS_parser {
 	 * @return  array
 	 */
 	protected function simple_statement() {
-		return array('stat', UJSUtil()->prog1($this->statement, $this->semicolon));
+		$stat = $this->statement();
+		$this->semicolon();
+		return array('stat', $stat);
 	}
 	
 	/**
@@ -1457,7 +1489,12 @@ class UglifyJS_parser {
 	 * @return  array
 	 */
 	protected function function_($in_statement = false) {
-		$name = $this->is('name') ? UJSUtil()->prog1($this->state['token']->value, $this->next) : null;
+		if ($this->is('name')) {
+			$name = $this->state['token']-> value;
+			$this->next();
+		} else {
+			$name = null;
+		}
 		if ($in_statement && ! $name) {
 			$this->unexpected();
 		}
@@ -1668,18 +1705,17 @@ class UglifyJS_parser {
 			return $this->new_();
 		}
 		if ($this->is('operator') && in_array($this->state['token']->value, $this->unary_prefix)) {
-			return $this->make_unary('unary-prefix',
-				UJSUtil()->prog1($this->state['token']->value, $this->next),
-				$this->expr_atom($allow_calls)
-			);
+			$token_value = $this->state['token']->value;
+			$this->next();
+			return $this->make_unary('unary-prefix', $token_value, $this->expr_atom($allow_calls));
 		}
 		if ($this->is('punc')) {
 			switch ($this->state['token']->value) {
 				case '(':
 					$this->next();
-					return $this->subscripts(
-						UJSUtil()->prog1($this->expression, UJSUtil()->curry($this->expect, ')')), $allow_calls
-					);
+					$expr = $this->expression();
+					$this->expect(')');
+					return $this->subscripts($expr, $allow_calls);
 				break;
 				case '[':
 					$this->next();
@@ -1701,7 +1737,8 @@ class UglifyJS_parser {
 			$atom = ($this->state['token']->type == 'regexp')
 				? array('regexp', $token_value[0], $token_value[1])
 				: array($this->state['token']->type, $this->state['token']->value);
-			return $this->subscripts(UJSUtil()->prog1($atom, $this->next), $allow_calls);
+			$this->next();
+			return $this->subscripts($atom, $allow_calls);
 		}
 		$this->unexpected();
 	}
@@ -1775,7 +1812,9 @@ class UglifyJS_parser {
 		switch ($this->state['token']->type) {
 			case 'string':
 			case 'num':
-				return UJSUtil()->prog1($this->state['token']->value, $this->next);
+				$token_value = $this->state['token']->value;
+				$this->next();
+				return $token_value;
 			break;
 			default:
 				return $this->as_name();
@@ -1795,7 +1834,9 @@ class UglifyJS_parser {
 			case 'operator':
 			case 'keyword':
 			case 'atom':
-				return UJSUtil()->prog1($this->state['token']->value, $this->next);
+				$token_value = $this->state['token']->value;
+				$this->next();
+				return $token_value;
 			break;
 			default:
 				$this->unexpected();
@@ -1803,7 +1844,38 @@ class UglifyJS_parser {
 		}
 	}
 	
-	
+	/**
+	 * Handles subscripts
+	 *
+	 * @access  protected
+	 * @param   array     expression
+	 * @param   bool      allow calls
+	 * @return  array
+	 */
+	protected function subscripts($expr, $allow_calls) {
+		if ($this->is('punc', '.')) {
+			$this->next();
+			$this->subscripts(array('dot', $expr, $this->as_name()), $allow_calls);
+		}
+		if ($this->is('punc', '[')) {
+			$this->next();
+			$expr2 = $this->expression();
+			$this->expect(']');
+			$this->subscripts(array('sub', $expr, $expr2));
+		}
+		if ($allow_calls) {
+			if ($this->is('punc', '(')) {
+				$this->next();
+				return $this->subscripts(array('call', $expr, $this->expr_list(')')), true);
+			}
+			if ($this->is('operator') && in_array($this->state['token']->value, $this->unary_postfix)) {
+				$ret = $this->make_unary('unary-postfix', $this->state['token']->value, $expr);
+				$this->next();
+				return $ret;
+			}
+		}
+		return $expr;
+	}
 	
 	
 	
