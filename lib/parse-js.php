@@ -1877,7 +1877,50 @@ class UglifyJS_parser {
 		return $expr;
 	}
 	
+	/**
+	 * Handles unary operators
+	 *
+	 * @access  protected
+	 * @param   string    pre or post
+	 * @param   string    operator
+	 * @param   array     expression
+	 * @return  array
+	 */
+	protected function make_unary($tag, $op, $expr) {
+		if (($op == '++' || $op == '--') && ! $this->is_assignable($expr)) {
+			$this->parse_error('Invalid use of '.$op.' operator');
+		}
+		return array($tag, $op, $expr);
+	}
 	
+	/**
+	 * Handles expression operators
+	 *
+	 * @access  protected
+	 * @param   array     left side
+	 * @param   int       minimum precedence
+	 * @return  array
+	 */
+	protected function expr_op($left, $min_prec) {
+		$op = $this->is('operator') ? $this->state['token']->value : null;
+		$prec = ($op !== null) ? $this->precedence[$op] : null;
+		if ($prec !== null && $prec > $min_prec) {
+			$this->next();
+			$right = $this->expr_op($this->expr_atom(true), $prec);
+			return $this->expr_op(array('binary', $op, $left, $right), $min_prec);
+		}
+		return $left;
+	}
+	
+	/**
+	 * Handles expression operators
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function expr_ops() {
+		return $this->expr_op($this->expr_atom(true), 0);
+	}
 	
 	
 	
