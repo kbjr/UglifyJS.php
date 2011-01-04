@@ -1418,6 +1418,178 @@ class UglifyJS_parser {
 		return array($type, $name);
 	}
 	
+	/**
+	 * Handles a for loop
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function for_() {
+		$this->expect('(');
+		$has_var = $this->is('keyword', 'var');
+		if ($has_var) {
+			$this->next();
+		}
+		if ($this->is('name') && $this->is_token($this->peek(), 'operator', 'in')) {
+			// for ([var] i in foo)
+			$name = $this->state['token']->value;
+			$this->next();
+			$this->next();
+			$obj = $this->expression();
+			$this->expect(')');
+			return array('for_in', $has_var, $name, $obj, $this->in_loop($this->statement));
+		} else {
+			// for (...;...;...)
+			$init = $this->is('punc', ';') ? null : ($has_var ? $this->var_() : $this->expression());
+			$this->expect(';');
+			$test = $this->is('punc', ';') ? null : $this->expression();
+			$this->expect(';');
+			$step = $this->is('punc', ')') ? null : $this->expression();
+			return array('for', $init, $test, $step, $this->in_loop($this->statement));
+		}
+	}
+	
+	/**
+	 * Handle a function
+	 *
+	 * @access  protected
+	 * @param   bool      in a statement?
+	 * @return  array
+	 */
+	protected function function_($in_statement = false) {
+		$name = $this->is('name') ? UJSUtil()->prog1($this->state['token']->value, $this->next) : null;
+		if ($in_statement && ! $name) {
+			$this->unexpected();
+		}
+		$this->expect('(');
+		// Handle arguments
+		$first = true;
+		$args = array();
+		while (! $this->is('punc', ')')) {
+			if ($first) {
+				$first = false;
+			} else {
+				$this->expect(',');
+			}
+			if (! $this->is('name')) {
+				$this->unexpected();
+			}
+			$args[] = $this->state['token']->value;
+			$this->next();
+		}
+		$this->next();
+		// Handle the function body
+		$this->state['in_function']++;
+		$loop = $this->state['in_loop'];
+		$this->state['in_loop'] = 0;
+		$body = $this->block_();
+		$this->state['in_function']--;
+		$this->state['in_loop'] = $loop;
+		return array(($in_statement ? 'defun' : 'function'), $name, $args, $body);
+	}
+	
+	/**
+	 * Handles if blocks
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function if_() {
+		$cond = $this->parenthesised();
+		$body = $this->statement();
+		$belse = null;
+		if ($this->is('keyword', 'else')) {
+			$this->next();
+			$belse = $this->statement();
+		}
+		return array('if', $cond, $body, $belse);
+	}
+	
+	/**
+	 * Handles code blocks
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function block_() {
+		$this->expect('{');
+		$arr = array();
+		if (! $this->is('punc', '}')) {
+			if ($this->is('eof')) {
+				$this->unexpected();
+			}
+			$arr[] = $this->statement();
+		}
+		$this->next();
+		return $arr;
+	}
+	
+	/**
+	 * Handles a switch block
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function switch_block_() {
+		return $this->in_loop(function() {
+			$this->expect('{');
+			$arr = array();
+			$cur = null;
+			while (! $this->is('punc', '}')) {
+				if ($this->is('eof')) {
+					$this->unexpected();
+				}
+				if ($this->is('keyword', 'case')) {
+					$this->next();
+					$cur = array();
+					$arr[] = array($this->expression(), $cur);
+					$this->expect(':');
+				} elseif ($this->is('keyword', 'default')) {
+					$this->next();
+					$this->expect(':');
+					$cur = array();
+					$arr[] = array(null, $cur);
+				} else {
+					if (! $cur) {
+						$this->unexpected();
+					}
+					$cur[] = $this->statement();
+				}
+			}
+		});
+	}
+	
+	/**
+	 * Handles try blocks
+	 *
+	 * @access  protected
+	 * @return  array
+	 */
+	protected function try_() {
+		$body = $this->block_();
+		$bcatch = null;
+		$bfinally = null;
+		if ($this->is('keyword', 'catch')) {
+			$this->next();
+			$this->expect('(');
+			if (! $this->is('name')) {
+				$this->parse_error('Name expected');
+			}
+			$name = $this->state['token']->value;
+			$this->next();
+			$this->expect(')');
+			$bcatch = array($name, $this->block_());
+		}
+		if ($this->is('keyword', 'finally')) {
+			$this->next();
+			$bfinally = $this->block_();
+		}
+		if (! $bcatch && ! $bfinally) {
+			$this->parse_error('Missing catch/finally blocks');
+		}
+		return array('try', $body, $bcatch, $bfinally);
+	}
+	
 	
 	
 	

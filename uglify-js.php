@@ -30,7 +30,7 @@ define('UGLIFYJS_BASEPATH', dirname(__FILE__).'/');
 define('UGLIFYJS_LIBPATH', UGLIFYJS_BASEPATH.'lib/');
 
 /**
- * The name to give the shortcur function (FALSE for none).
+ * The name to give the shortcut function (FALSE for none).
  */
 define('UGLIFYJS_FUNCTION', 'UJS');
 
@@ -101,7 +101,12 @@ class UglifyJS {
 	 * @return  self
 	 */
 	public function set_option($option, $value) {
-		$this->options[$option] = $value;
+		$option = explode('.', $option);
+		if (count($option) == 2) {
+			$this->options[$option[0]][$option[1]] = $value;
+		} else {
+			$this->options[$option[0]] = $value;
+		}
 		return $this;
 	}
 	 
@@ -113,9 +118,7 @@ class UglifyJS {
 	 * @return  self
 	 */
 	public function set_options($options) {
-		foreach($options as $option => $value) {
-			$this->set_option($option, $value);
-		}
+		$this->options = array_merge_recursive($this->options, $options);
 		return $this;
 	}
 	
@@ -155,16 +158,6 @@ class UglifyJS {
 	protected function parse_code_block($code) {
 		return $code;
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 }
 
