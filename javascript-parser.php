@@ -67,7 +67,7 @@ class JavaScript_Parser {
 	}
 
 	public function croak($msg, $line = null, $col = null, $pos = null) {
-		$ctx = $this->input->context();
+		$ctx = (object) $this->input->context();
 		$this->raise(
 			$msg,
 			(($line !== null) ? $line : $ctx->line),
@@ -121,6 +121,10 @@ class JavaScript_Parser {
 	public function is($type, $value = null) {
 		return ParseJS::is_token($this->token, $type, $value);
 	}
+	
+	public function peek() {
+		return (($this->peeked) ? $this->peeked : ($this->peeked = $this->input->next_token()));
+	}
 
 	public function next() {
 		$this->prev = $this->token;
@@ -159,6 +163,7 @@ class JavaScript_Parser {
 				$self->peeked = null;
 				$self->token = $self->input->next_token(true);
 			}
+			var_dump($self->token);
 			switch ($self->token->type) {
 				case 'num':
 				case 'string':
@@ -203,65 +208,65 @@ class JavaScript_Parser {
 							$self->semicolon();
 							return array('debugger');
 						break;
+						case 'do':
+							$body = $self->do_in_loop('statement');
+							$self->expect_token('keyword', 'while');
+							$paren = $self->parenthesised();
+							$self->semicolon();
+							return array('do', $paren, $body);
+						break;
+						case 'for':
+							return $self->for_();
+						break;
+						case 'function':
+							return $self->function_(true);
+						break;
+						case 'if':
+							return $self->if_();
+						break;
+						case 'return':
+							if (! $self->in_function) {
+								$self->croak('"return" outside of function');
+							}
+							if ($self->is('punc', ';')) {
+								$self->next();
+								return array('return', null);
+							} elseif ($self->can_insert_semicolon()) {
+								return array('return', null);
+							} else {
+								$exp = $self->expression();
+								$self->semicolon();
+								return array('return', $exp);
+							}
+						break;
+						case 'switch':
+							return array('switch', $self->parenthesised(), $self->switch_block_());
+						break;
+						case 'throw':
+							$exp = $self->expression();
+							$self->semicolon();
+							return array('throw', $exp);
+						break;
+						case 'try':
+							return $self->try_();
+						break;
+						case 'var':
+							$var = $self->var_();
+							$self->semicolon();
+							return $var;
+						break;
+						case 'const':
+							$const = $self->const_();
+							$self->semicolon();
+							return $const;
+						break;
+						case 'while':
+							return array('while', $self->parenthesised(), $self->do_in_loop('statement'));
+						break;
+						case 'with':
+							return array('with', $self->parenthesised(), $self->statement());
+						break;
 					}
-				break;
-				case 'do':
-					$body = $self->do_in_loop('statement');
-					$self->expect_token('keyword', 'while');
-					$paren = $self->parenthesised();
-					$self->semicolon();
-					return array('do', $paren, $body);
-				break;
-				case 'for':
-					return $self->for_();
-				break;
-				case 'function':
-					return $self->function_(true);
-				break;
-				case 'if':
-					return $self->if_();
-				break;
-				case 'return':
-					if (! $self->in_function) {
-						$self->croak('"return" outside of function');
-					}
-					if ($self->is('punc', ';')) {
-						$self->next();
-						return array('return', null);
-					} elseif ($self->can_insert_semicolon()) {
-						return array('return', null);
-					} else {
-						$exp = $self->expression();
-						$self->semicolon();
-						return array('return', $exp);
-					}
-				break;
-				case 'switch':
-					return array('switch', $self->parenthesised(), $self->switch_block_());
-				break;
-				case 'throw':
-					$exp = $self->expression();
-					$self->semicolon();
-					return array('throw', $exp);
-				break;
-				case 'try':
-					return $self->try_();
-				break;
-				case 'var':
-					$var = $self->var_();
-					$self->semicolon();
-					return $var;
-				break;
-				case 'const':
-					$const = $self->const_();
-					$self->semicolon();
-					return $const;
-				break;
-				case 'while':
-					return array('while', $self->parenthesised(), $self->do_in_loop('statement'));
-				break;
-				case 'with':
-					return array('with', $self->parenthesised(), $self->statement());
 				break;
 				default:
 					$self->unexpected();
@@ -354,6 +359,7 @@ class JavaScript_Parser {
 			if ($in_statement && ! $name) {
 				$self->unexpected();
 			}
+			$self->expect('(');
 			$type = $in_statement ? 'defun' : 'function';
 			// Get arguments
 			$first = true;
@@ -574,7 +580,7 @@ class JavaScript_Parser {
 			if ($first) {
 				$first = false;
 			} else {
-				$this-expect(',');
+				$this->expect(',');
 			}
 			if (! $this->exigent_mode && $this->is('punc', '}')) {
 				break;
@@ -697,7 +703,7 @@ class JavaScript_Parser {
 	public function maybe_assign($no_in = null) {
 		$left = $this->maybe_conditional($no_in);
 		$val = $this->token->value;
-		if ($this->is('operator') && in_array($val, ParseJS::$ASSIGNMENT)) {
+		if ($this->is('operator') && isset(ParseJS::$ASSIGNMENT[$val])) {
 			if ($this->is_assignable($left)) {
 				$this->next();
 				return array('assign', ParseJS::$ASSIGNMENT[$val], $left, $this->maybe_assign($no_in));

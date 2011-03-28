@@ -6,12 +6,8 @@ require 'parse-js.php';
 
 $contents = file_get_contents('test.js');
 
-die($contents);
-
 $tokenizer = ParseJS::tokenizer($contents);
 
-$parsed = $tokenizer->next_token();
+var_dump($tokenizer->get_tokens());
 
-var_dump($parsed);
-
-?>
+/* End of file test.php */
