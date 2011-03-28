@@ -26,23 +26,21 @@ class JavaScript_Parser {
 // ----------------------------------------------------------------------------
 //  Properties
 
-	protected $input        = null;
-	protected $token        = null;
-	protected $prev         = null;
-	protected $peeked       = null;
-	protected $in_function  = 0;
-	protected $in_loop      = 0;
-	protected $labels       = array();
+	public $input        = null;
+	public $token        = null;
+	public $prev         = null;
+	public $peeked       = null;
+	public $in_function  = 0;
+	public $in_loop      = 0;
+	public $labels       = array();
 
-	protected $exigent_mode = null;
-	protected $embed_tokens = null;
+	public $exigent_mode = null;
+	public $embed_tokens = null;
 
 // ----------------------------------------------------------------------------
 //  Public functions
 
 	public function __construct($input, $exigent_mode = false, $embed_tokens = false) {
-		self::_ASSIGNMENT();
-		self::_PRECEDENCE();
 		if (is_string($input)) {
 			$this->input = new JavaScript_Tokenizer($input);
 		} else {
@@ -64,11 +62,11 @@ class JavaScript_Parser {
 // ----------------------------------------------------------------------------
 //  Error handler functions
 
-	protected function raise($msg, $line, $col, $pos) {
+	public function raise($msg, $line, $col, $pos) {
 		throw new JS_Parse_Error($msg, $line, $col, $pos);
 	}
 
-	protected function croak($msg, $line = null, $col = null, $pos = null) {
+	public function croak($msg, $line = null, $col = null, $pos = null) {
 		$ctx = $this->input->context();
 		$this->raise(
 			$msg,
@@ -78,38 +76,38 @@ class JavaScript_Parser {
 		);
 	}
 
-	protected function token_error($token, $msg) {
+	public function token_error($token, $msg) {
 		$this->croak($msg, $token->line, $token->col);
 	}
 
-	protected function unexpected($token = null) {
+	public function unexpected($token = null) {
 		if (! $token) {
 			$token = $this->token;
 		}
 		$this->token_error($token, 'Unexpected token '.$token->type.' ('.$token->value.')');
 	}
 
-	protected function expect_token($type, $val = null) {
+	public function expect_token($type, $val = null) {
 		if ($this->is($type, $val)) {
 			return $this->next();
 		}
 		$this->token_error($this->token, 'Unexpected token '.$this->token->type.', expected '.$type);
 	}
 
-	protected function expect($punc) {
+	public function expect($punc) {
 		return $this->expect_token('punc', $punc);
 	}
 
 // ----------------------------------------------------------------------------
 //  Semicolon handling functions
 
-	protected function can_insert_semicolon() {
+	public function can_insert_semicolon() {
 		return (! $this->exigent_mode && (
 			$this->token->nlb || $this->is('eof') || $this->is('punc', '}')
 		));
 	}
 
-	protected function semicolon() {
+	public function semicolon() {
 		if ($this->is('punc', ';')) {
 			$this->next();
 		} elseif (! $this->can_insert_semicolon()) {
@@ -120,11 +118,11 @@ class JavaScript_Parser {
 // ----------------------------------------------------------------------------
 //  Internal helper functions
 
-	protected function is($type, $value = null) {
+	public function is($type, $value = null) {
 		return ParseJS::is_token($this->token, $type, $value);
 	}
 
-	protected function next() {
+	public function next() {
 		$this->prev = $this->token;
 		if ($this->peeked) {
 			$this->token = $this->peeked;
@@ -135,14 +133,14 @@ class JavaScript_Parser {
 		return $this->token;
 	}
 
-	protected function parenthesised() {
+	public function parenthesised() {
 		$this->expect('(');
 		$exp = $this->expression();
 		$this->expect(')');
 		return $exp;
 	}
 
-	protected function add_tokens($str, $start = null, $end = null) {
+	public function add_tokens($str, $start = null, $end = null) {
 		if ($str instanceof NodeWithToken) {
 			return $str;
 		} else {
@@ -150,122 +148,123 @@ class JavaScript_Parser {
 		}
 	}
 
-	protected function statement() {
+	public function statement() {
 		if ($this->embed_tokens) {
 			$start = $this->token;
 		}
 		$argv = func_get_args();
-		$ast = call_user_func(function() use($argv) {
-			if ($this->is('operator', '/')) {
-				$this->peeked = null;
-				$this->token = $this->input->next_token(true);
+		$self =& $this;
+		$ast = call_user_func(function() use(&$self, $argv) {
+			if ($self->is('operator', '/')) {
+				$self->peeked = null;
+				$self->token = $self->input->next_token(true);
 			}
-			switch ($this->token->type) {
+			switch ($self->token->type) {
 				case 'num':
 				case 'string':
 				case 'regexp':
 				case 'operator':
 				case 'atom':
-					return $this->simple_statement();
+					return $self->simple_statement();
 				break;
 				case 'name':
-					if (ParseJS::is_token($this->peek(), 'punc', ':')) {
-						$this->next();
-						$this->next();
-						return $this->labeled_statement($this->token->value);
+					if (ParseJS::is_token($self->peek(), 'punc', ':')) {
+						$self->next();
+						$self->next();
+						return $self->labeled_statement($self->token->value);
 					} else {
-						return $this->simple_statement();
+						return $self->simple_statement();
 					}
 				break;
 				case 'punc':
-					switch ($this->token->value) {
+					switch ($self->token->value) {
 						case '{':
-							return array('block', $this->block_());
+							return array('block', $self->block_());
 						break;
 						case '[':
 						case '(':
-							return $this->simple_statement();
+							return $self->simple_statement();
 						break;
 						case ';':
-							$this->next();
+							$self->next();
 							return array('block');
 						break;
 					}
 				break;
 				case 'keyword':
-					$token_value = $this->token->value;
-					$this->next();
+					$token_value = $self->token->value;
+					$self->next();
 					switch($token_value) {
 						case 'break':
 						case 'continue':
 							return $this->break_cont($token_value);
 						break;
 						case 'debugger':
-							$this->semicolon();
+							$self->semicolon();
 							return array('debugger');
 						break;
 					}
 				break;
 				case 'do':
-					$body = $this->do_in_loop('statement');
-					$this->expect_token('keyword', 'while');
-					$paren = $this->parenthesised();
-					$this->semicolon();
+					$body = $self->do_in_loop('statement');
+					$self->expect_token('keyword', 'while');
+					$paren = $self->parenthesised();
+					$self->semicolon();
 					return array('do', $paren, $body);
 				break;
 				case 'for':
-					return $this->for_();
+					return $self->for_();
 				break;
 				case 'function':
-					return $this->function_(true);
+					return $self->function_(true);
 				break;
 				case 'if':
-					return $this->if_();
+					return $self->if_();
 				break;
 				case 'return':
-					if (! $this->in_function) {
-						$this->croak('"return" outside of function');
+					if (! $self->in_function) {
+						$self->croak('"return" outside of function');
 					}
-					if ($this->is('punc', ';')) {
-						$this->next();
+					if ($self->is('punc', ';')) {
+						$self->next();
 						return array('return', null);
-					} elseif ($this->can_insert_semicolon()) {
+					} elseif ($self->can_insert_semicolon()) {
 						return array('return', null);
 					} else {
-						$exp = $this->expression();
-						$this->semicolon();
+						$exp = $self->expression();
+						$self->semicolon();
 						return array('return', $exp);
 					}
 				break;
 				case 'switch':
-					return array('switch', $this->parenthesised(), $this->switch_block_());
+					return array('switch', $self->parenthesised(), $self->switch_block_());
 				break;
 				case 'throw':
-					$exp = $this->expression();
-					$this->semicolon();
+					$exp = $self->expression();
+					$self->semicolon();
 					return array('throw', $exp);
 				break;
 				case 'try':
-					return $this->try_();
+					return $self->try_();
 				break;
 				case 'var':
-					$var = $this->var_();
-					$this->semicolon();
+					$var = $self->var_();
+					$self->semicolon();
 					return $var;
 				break;
 				case 'const':
-					$const = $this->const_();
-					$this->semicolon();
+					$const = $self->const_();
+					$self->semicolon();
 					return $const;
 				break;
 				case 'while':
-					return array('while', $this->parenthesised(), $this->do_in_loop('statement'));
+					return array('while', $self->parenthesised(), $self->do_in_loop('statement'));
 				break;
 				case 'with':
-					return array('with', $this->parenthesised(), $this->statement());
+					return array('with', $self->parenthesised(), $self->statement());
 				break;
 				default:
-					$this->unexpected();
+					$self->unexpected();
 				break;
 			}
 		});
@@ -275,7 +274,7 @@ class JavaScript_Parser {
 		return $ast;
 	}
 
-	protected function labeled_statement($label) {
+	public function labeled_statement($label) {
 		$this->labels[] = $label;
 		$start = $this->token;
 		$stat = $this->statement();
@@ -286,13 +285,13 @@ class JavaScript_Parser {
 		return array('label', $label, $stat);
 	}
 
-	protected function simple_statement() {
+	public function simple_statement() {
 		$exp = $this->expression();
 		$this->semicolon();
 		return array('stat', $exp);
 	}
 
-	protected function break_cont($type) {
+	public function break_cont($type) {
 		$name = $this->is('name') ? $this->token->value : null;
 		if ($name !== null) {
 			$this->next();
@@ -306,7 +305,7 @@ class JavaScript_Parser {
 		return array($type, $name);
 	}
 
-	protected function for_() {
+	public function for_() {
 		$this->expect('(');
 		$init = null;
 		if (! $this->is('punc', ';')) {
@@ -323,7 +322,7 @@ class JavaScript_Parser {
 		return $this->regular_for($init);
 	}
 
-	protected function regular_for($init) {
+	public function regular_for($init) {
 		$this->expect(';');
 		$test = $this->is('punc', ';') ? null : $this->expression();
 		$this->expect(';');
@@ -332,7 +331,7 @@ class JavaScript_Parser {
 		return array('for', $init, $test, $step, $this->do_in_loop('statement'));
 	}
 
-	protected function for_in($init) {
+	public function for_in($init) {
 		$lhs = ($init[0] == 'var') ? array('name', $init[1][0]) : $init;
 		$this->next();
 		$obj = $this->expression();
@@ -340,44 +339,45 @@ class JavaScript_Parser {
 		return array('for-in', $init, $lhs, $obj, $this->do_in_loop('statement'));
 	}
 
-	protected function function_($in_statement = null) {
+	public function function_($in_statement = null) {
 		if ($this->embed_tokens) {
 			$start = $this->prev;
 		}
-		$ast = call_user_func(function() use($in_statement) {
+		$self =& $this;
+		$ast = call_user_func(function() use(&$self, $in_statement) {
 			$name = null;
-			if ($this->is('name')) {
-				$value = $this->token->value;
-				$this->next();
+			if ($self->is('name')) {
+				$value = $self->token->value;
+				$self->next();
 				$name = $value;
 			}
 			if ($in_statement && ! $name) {
-				$this->unexpected();
+				$self->unexpected();
 			}
 			$type = $in_statement ? 'defun' : 'function';
 			// Get arguments
 			$first = true;
 			$args = array();
-			while (! $this->is('punc', ')')) {
+			while (! $self->is('punc', ')')) {
 				if ($first) {
 					$first = false;
 				} else {
-					$this->expect(',');
+					$self->expect(',');
 				}
-				if (! $this->is('name')) {
-					$this->unexpected();
+				if (! $self->is('name')) {
+					$self->unexpected();
 				}
-				$args[] = $this->token->value;
-				$this->next();
+				$args[] = $self->token->value;
+				$self->next();
 			}
-			$this->next();
+			$self->next();
 			// Get function body
-			$this->in_function++;
-			$loop = $this->in_loop;
-			$this->in_loop = 0;
-			$body = $this->block_();
-			$this->in_function--;
-			$this->in_loop = $loop;
+			$self->in_function++;
+			$loop = $self->in_loop;
+			$self->in_loop = 0;
+			$body = $self->block_();
+			$self->in_function--;
+			$self->in_loop = $loop;
 			return array($type, $name, $args, $body);
 		});
 		if ($this->embed_tokens) {
@@ -386,7 +386,7 @@ class JavaScript_Parser {
 		return $ast;
 	}
 
-	protected function if_() {
+	public function if_() {
 		$cond = $this->parenthesised();
 		$body = $this->statement();
 		$belse = null;
@@ -397,7 +397,7 @@ class JavaScript_Parser {
 		return array('if', $cond, $body, $else);
 	}
 
-	protected function block_() {
+	public function block_() {
 		$this->expect('{');
 		$arr = array();
 		while (! $this->is('punc', '}')) {
@@ -408,34 +408,35 @@ class JavaScript_Parser {
 		return $arr;
 	}
 
-	protected function switch_block_() {
-		return $this->do_in_loop(function() {
-			$this->expect('{');
+	public function switch_block_() {
+		$self =& $this;
+		return $this->do_in_loop(function() use(&$self) {
+			$self->expect('{');
 			$arr = array();
 			$cur = null;
-			while (! $this->is('punc', '}')) {
-				if ($this->is('eof')) $this->unexpected();
-				if ($this->is('keyword', 'case')) {
-					$this->next();
+			while (! $self->is('punc', '}')) {
+				if ($self->is('eof')) $self->unexpected();
+				if ($self->is('keyword', 'case')) {
+					$self->next();
 					$cur = array();
-					$arr[] = array($this->expression(), &$cur);
-					$this->expect(':');
-				} elseif ($this->is('keyword', 'default')) {
-					$this->next();
-					$this->expect(':');
+					$arr[] = array($self->expression(), &$cur);
+					$self->expect(':');
+				} elseif ($self->is('keyword', 'default')) {
+					$self->next();
+					$self->expect(':');
 					$cur = array();
 					$arr[] = array(null, &$cur);
 				} else {
-					if (! $cur) $this->unexpected();
-					$cur[] = $this->statement();
+					if (! $cur) $self->unexpected();
+					$cur[] = $self->statement();
 				}
 			}
-			$this->next();
+			$self->next();
 			return $arr;
 		});
 	}
 
-	protected function try_() {
+	public function try_() {
 		$body = $this->block_();
 		$bcatch = null;
 		$bfinally = null;
@@ -460,7 +461,7 @@ class JavaScript_Parser {
 		return array('try', $body, $bcatch, $bfinally);
 	}
 
-	protected function vardefs($no_in = null) {
+	public function vardefs($no_in = null) {
 		$arr = array();
 		for (;;) {
 			if (! $this->is('name')) $this->unexpected();
@@ -478,15 +479,15 @@ class JavaScript_Parser {
 		return $arr;
 	}
 
-	protected function var_($no_in = null) {
+	public function var_($no_in = null) {
 		return array('var', $this->vardefs($no_in));
 	}
 
-	protected function const_() {
+	public function const_() {
 		return array('const', $this->vardefs());
 	}
 
-	protected function new_() {
+	public function new_() {
 		$newexp = $this->expr_atom(false);
 		if ($this->is('punc', '(')) {
 			$this->next();
@@ -497,7 +498,7 @@ class JavaScript_Parser {
 		return $this->subscripts(array('new', $newexp, $args), true);
 	}
 
-	protected function expr_atom($allow_calls = null) {
+	public function expr_atom($allow_calls = null) {
 		if ($this->is('operator', 'new')) {
 			$this->next();
 			return $this->new_();
@@ -542,7 +543,7 @@ class JavaScript_Parser {
 		$this->unexpected();
 	}
 
-	protected function expr_list($closing, $allow_trailing_comma = null, $allow_empty = null) {
+	public function expr_list($closing, $allow_trailing_comma = null, $allow_empty = null) {
 		$first = true;
 		$arr = array();
 		while (! $this->is('punc', $closing)) {
@@ -562,11 +563,11 @@ class JavaScript_Parser {
 		return $arr;
 	}
 
-	protected function array_() {
+	public function array_() {
 		return array('array', $this->expr_list(']', ! $this->exigent_mode, true));
 	}
 
-	protected function object_() {
+	public function object_() {
 		$first = true;
 		$arr = array();
 		while (! $this->is('punc', '}')) {
@@ -591,7 +592,7 @@ class JavaScript_Parser {
 		return array('object', $arr);
 	}
 
-	protected function as_property_name() {
+	public function as_property_name() {
 		switch ($this->token->type) {
 			case 'num':
 			case 'string':
@@ -603,7 +604,7 @@ class JavaScript_Parser {
 		return $this->as_name();
 	}
 
-	protected function as_name() {
+	public function as_name() {
 		switch ($this->token->type) {
 			case 'name':
 			case 'operator':
@@ -617,7 +618,7 @@ class JavaScript_Parser {
 		$this->unexpected();
 	}
 
-	protected function subscripts($expr, $allow_calls = null) {
+	public function subscripts($expr, $allow_calls = null) {
 		if ($this->is('punc', '.')) {
 			$this->next();
 			return $this->subscripts(array('dot', $expr, $this->as_name()), $allow_calls);
@@ -642,14 +643,14 @@ class JavaScript_Parser {
 		return $expr;
 	}
 
-	protected function make_unary($tag, $op, $expr) {
+	public function make_unary($tag, $op, $expr) {
 		if (($op == '++' || $op == '--') && ! $this->is_assignable($expr)) {
 			$this->croak('Invalid use of '.$op.' operator');
 		}
 		return array($tag, $op, $expr);
 	}
 
-	protected function expr_op($left, $min_prec, $no_in = null) {
+	public function expr_op($left, $min_prec, $no_in = null) {
 		$op = ($this->is('operator')) ? $this->token->value : null;
 		if ($op == 'in' && $no_in) {
 			$op = null;
@@ -663,11 +664,11 @@ class JavaScript_Parser {
 		return $left;
 	}
 
-	protected function expr_ops($no_in = null) {
+	public function expr_ops($no_in = null) {
 		return $this->expr_op($this->expr_atom(true), 0, $no_in);
 	}
 
-	protected function maybe_conditional($no_in = null) {
+	public function maybe_conditional($no_in = null) {
 		$expr = $this->expr_ops($no_in);
 		if ($this->is('operator', '?')) {
 			$this->next();
@@ -678,7 +679,7 @@ class JavaScript_Parser {
 		return $expr;
 	}
 
-	protected function is_assignable($expr) {
+	public function is_assignable($expr) {
 		if (! $this->exigent_mode) return true;
 		switch ($expr[0]) {
 			case 'dot':
@@ -693,7 +694,7 @@ class JavaScript_Parser {
 		}
 	}
 
-	protected function maybe_assign($no_in = null) {
+	public function maybe_assign($no_in = null) {
 		$left = $this->maybe_conditional($no_in);
 		$val = $this->token->value;
 		if ($this->is('operator') && in_array($val, ParseJS::$ASSIGNMENT)) {
@@ -706,7 +707,7 @@ class JavaScript_Parser {
 		return $left;
 	}
 
-	protected function expression($commas = null, $no_in = null) {
+	public function expression($commas = null, $no_in = null) {
 		if ($commas === null) {
 			$commas = true;
 		}
@@ -718,7 +719,7 @@ class JavaScript_Parser {
 		return $expr;
 	}
 
-	protected function do_in_loop($cont) {
+	public function do_in_loop($cont) {
 		try {
 			$this->in_loop++;
 			if (is_string($cont) && method_exists($this, $cont)) {

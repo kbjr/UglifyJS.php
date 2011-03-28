@@ -26,26 +26,26 @@ class JavaScript_Tokenizer {
 // ----------------------------------------------------------------------------
 //  Properties
 	
-	protected $text            = null;
-	protected $tokens          = array(
+	public $text            = null;
+	public $tokens          = array(
 		0 => null, 1 => null
 	);
-	protected $pos             = 0;
-	protected $tokpos          = 0;
-	protected $line            = 0;
-	protected $tokline         = 0;
-	protected $col             = 0;
-	protected $tokcol          = 0;
-	protected $newline_before  = false;
-	protected $regex_allowed   = false;
-	protected $comments_before = array();
+	public $pos             = 0;
+	public $tokpos          = 0;
+	public $line            = 0;
+	public $tokline         = 0;
+	public $col             = 0;
+	public $tokcol          = 0;
+	public $newline_before  = false;
+	public $regex_allowed   = false;
+	public $comments_before = array();
 	
 // ----------------------------------------------------------------------------
 //  Public functions
 	
 	public function __construct($input) {
-		$input = preg_replace('/\r\n?|[\n\u2028\u2029]/g', "\n", $input);
-		$input = preg_replace('/^\uFEFF/', '', $input);
+		$input = preg_replace('/\r\n?|[\n\x{2028}\x{2029}]/u', "\n", $input);
+		$input = preg_replace('/^\x{FEFF}/u', '', $input);
 		$this->text = $input;
 	}
 
@@ -134,19 +134,19 @@ class JavaScript_Tokenizer {
 // ----------------------------------------------------------------------------
 //  Internal helper functions
 
-	protected function raise($msg, $line, $col, $pos) {
+	public function raise($msg, $line, $col, $pos) {
 		throw new JS_Parse_Error($msg, $line, $col, $pos);
 	}
 
-	protected function parse_error($msg) {
+	public function parse_error($msg) {
 		return $this->raise($msg, $this->line, $this->col, $this->pos);
 	}
 
-	protected function peek() {
+	public function peek() {
 		return ((isset($this->text[$this->pos])) ? $this->text[$this->pos] : null);
 	}
 
-	protected function next($signal_eof = false) {
+	public function next($signal_eof = false) {
 		$ch = $this->text[$this->pos++];
 		if ($signal_eof && ! $ch) {
 			throw new JS_EOF();
@@ -161,22 +161,22 @@ class JavaScript_Tokenizer {
 		return $ch;
 	}
 
-	protected function eof() {
+	public function eof() {
 		return (! $this->peek());
 	}
 
-	protected function find($what) {
+	public function find($what) {
 		$pos = strpos($this->text, $what, $this->pos);
 		return $pos;
 	}
 
-	protected function start_token() {
+	public function start_token() {
 		$this->tokline = $this->line;
 		$this->tokcol  = $this->col;
 		$this->tokpos  = $this->pos;
 	}
 
-	protected function token($type, $value, $is_comment) {
+	public function token($type, $value, $is_comment = false) {
 		$this->regex_allowed = (
 			($type == 'operator' && ! in_array($value, ParseJS::$UNARY_POSTFIX)) ||
 			($type == 'keyword' && ! in_array($value, ParseJS::$KEYWORDS_BEFORE_EXPRESSION)) ||
@@ -191,13 +191,13 @@ class JavaScript_Tokenizer {
 		return $ret;
 	}
 
-	protected function skip_whitespace() {
+	public function skip_whitespace() {
 		while (in_array($this->peek(), ParseJS::$WHITESPACE_CHARS)) {
 			$this->next();
 		}
 	}
 
-	protected function read_while($pred) {
+	public function read_while($pred) {
 		$i = 0;
 		$ret = '';
 		$ch = $this->peek();
@@ -208,36 +208,34 @@ class JavaScript_Tokenizer {
 		return $ret;
 	}
 
-	public function read_num($prefix) {
+	public function read_num($prefix = '') {
 		$has_e = false;
 		$after_e = false;
 		$has_x = false;
 		$has_dot = ($prefix == '.');
-		$num = $this->read_while(function($ch, $i)
-			use(&$has_e, &$after_e, &$has_x, &$has_dot) {
-				if ($ch == 'x' || $ch == 'X') {
-					if ($has_x) return false;
-					return ($has_x = true);
-				}
-				if (! $has_x && ($ch == 'e' || $ch == 'E')) {
-					if ($has_e) return false;
-					return ($has_e = $after_e = true);
-				}
-				if ($ch == '-') {
-					if ($after_e || ($i == 0 && ! $prefix)) return true;
-					return false;
-				}
-				if ($ch == '+') return $after_e;
-				$after_e = false;
-				if ($ch == '.') {
-					if (! $has_dot && ! $has_x) {
-						return ($has_dot = true);
-					}
-					return false;
-				}
-				return is_alphanumeric_char($ch);
+		$num = $this->read_while(function($ch, $i) use(&$has_e, &$after_e, &$has_x, &$has_dot) {
+			if ($ch == 'x' || $ch == 'X') {
+				if ($has_x) return false;
+				return ($has_x = true);
 			}
-		);
+			if (! $has_x && ($ch == 'e' || $ch == 'E')) {
+				if ($has_e) return false;
+				return ($has_e = $after_e = true);
+			}
+			if ($ch == '-') {
+				if ($after_e || ($i == 0 && ! $prefix)) return true;
+				return false;
+			}
+			if ($ch == '+') return $after_e;
+			$after_e = false;
+			if ($ch == '.') {
+				if (! $has_dot && ! $has_x) {
+					return ($has_dot = true);
+				}
+				return false;
+			}
+			return ParseJS::is_alphanumeric_char($ch);
+		});
 		if ($prefix) {
 			$num = $prefix.$num;
 		}
@@ -249,7 +247,7 @@ class JavaScript_Tokenizer {
 		}
 	}
 
-	protected function read_escaped_char() {
+	public function read_escaped_char() {
 		$ch = $this->next(true);
 		switch ($char) {
 			case 'n': return "\n";
@@ -265,7 +263,7 @@ class JavaScript_Tokenizer {
 		}
 	}
 
-	protected function hex_bytes($n) {
+	public function hex_bytes($n) {
 		$num = 0;
 		for (; $n > 0; --$n) {
 			$digit = intval($this->next(true), 16);
@@ -277,7 +275,7 @@ class JavaScript_Tokenizer {
 		return $num;
 	}
 
-	protected function read_string() {
+	public function read_string() {
 		return $this->with_eof_error('Unterminated string constant', function() {
 			$quote = $this->next();
 			$ret = '';
@@ -294,12 +292,12 @@ class JavaScript_Tokenizer {
 		});
 	}
 
-	protected function substr($str, $start, $end = null) {
+	public function substr($str, $start, $end = null) {
 		if ($end === null) $end = strlen($str);
 		return substr($str, $start, $end - $start);
 	}
 
-	protected function read_line_comment() {
+	public function read_line_comment() {
 		$this->next();
 		$i = $this->find("\n");
 		if ($i === false) {
@@ -312,7 +310,7 @@ class JavaScript_Tokenizer {
 		return $this->token('comment1', $ret, true);
 	}
 
-	protected function read_multiline_comment() {
+	public function read_multiline_comment() {
 		$this->next();
 		return $this->with_eof_error('Unterminated multiline comment', function() {
 			$i = $this->find('*/', true);
@@ -325,7 +323,7 @@ class JavaScript_Tokenizer {
 		});
 	}
 
-	protected function read_name() {
+	public function read_name() {
 		$backslash = false;
 		$name = '';
 		while (($ch = $this->peek()) !== null) {
@@ -353,7 +351,7 @@ class JavaScript_Tokenizer {
 		return $name;
 	}
 
-	protected function read_regexp() {
+	public function read_regexp() {
 		return $this->with_eof_error('Unterminated regular expression', function() {
 			$prev_backslash = false;
 			$regexp = '';
@@ -380,7 +378,7 @@ class JavaScript_Tokenizer {
 		});
 	}
 
-	protected function read_operator($prefix) {
+	public function read_operator($prefix) {
 		$grow = function($op) {
 			if (! $this->peek()) return $op;
 			$bigger = $op.$this->peek();
@@ -395,7 +393,7 @@ class JavaScript_Tokenizer {
 		return $this->token('operator', $grow($value));
 	}
 
-	protected function handle_slash() {
+	public function handle_slash() {
 		$this->next();
 		$regex_allowed = $this->regex_allowed;
 		switch ($this->peek()) {
@@ -413,14 +411,14 @@ class JavaScript_Tokenizer {
 		return (($this->regex_allowed) ? $this->read_regexp() : $this->read_operator('/'));
 	}
 
-	protected function handle_dot() {
+	public function handle_dot() {
 		$this->next();
 		return (ParseJS::is_digit($this->peek()) ?
 			$this->read_num('.') :
 			$this->token('punc', '.'));
 	}
 
-	protected function read_word() {
+	public function read_word() {
 		$word = $this->read_name();
 		if (! in_array($word, ParseJS::$KEYWORDS)) {
 			return $this->token('name', $word);
@@ -433,7 +431,7 @@ class JavaScript_Tokenizer {
 		}
 	}
 
-	protected function with_eof_error($err, $cont) {
+	public function with_eof_error($err, $cont) {
 		try {
 			return $cont();
 		} catch (Exception $ex) {

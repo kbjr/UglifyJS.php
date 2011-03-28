@@ -1,3 +1,7 @@
+/**
+ * This is a comment
+ */
+
 (function(window, undefined) {
 
 	// Here is a comment
